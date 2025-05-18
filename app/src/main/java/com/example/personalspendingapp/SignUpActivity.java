@@ -7,12 +7,14 @@ import android.widget.Button;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import com.example.personalspendingapp.models.Category;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.AuthResult;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class SignUpActivity extends AppCompatActivity {
 
@@ -20,14 +22,16 @@ public class SignUpActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private TextInputEditText emailEditText;
     private TextInputEditText passwordEditText;
+    private FirebaseFirestore db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up);
 
-        // Khởi tạo Firebase Auth
+        // Khởi tạo Firebase Auth và Firestore
         mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
 
         // Ánh xạ các view
         emailEditText = findViewById(R.id.emailEditText);
@@ -71,7 +75,16 @@ public class SignUpActivity extends AppCompatActivity {
                             // Đăng ký thành công
                             Log.d(TAG, "createUserWithEmail:success");
                             FirebaseUser user = mAuth.getCurrentUser();
-                            updateUI(user);
+                            if (user != null) {
+                                createDefaultCategories(user.getUid());
+                                updateUI(user);
+                            } else {
+                                // Xử lý trường hợp user là null sau khi đăng ký thành công (hiếm khi xảy ra)
+                                Log.e(TAG, "User is null after successful registration");
+                                Toast.makeText(SignUpActivity.this, "Registration successful, but user data is missing.",
+                                        Toast.LENGTH_SHORT).show();
+                                updateUI(null);
+                            }
                         } else {
                             // Đăng ký thất bại
                             Log.w(TAG, "createUserWithEmail:failure", task.getException());
@@ -83,14 +96,59 @@ public class SignUpActivity extends AppCompatActivity {
                 });
     }
 
+    private void createDefaultCategories(String userId) {
+        // Default Expense Categories
+        String[] defaultExpenseCategories = {
+                "Ăn uống", "Chi tiêu hàng ngày", "Quần áo", "Mỹ phẩm",
+                "Giao lưu", "Y tế", "Đi lại", "Giáo dục", "Tiện ích", "Điện", "Phí liên lạc"
+        };
+        for (String categoryName : defaultExpenseCategories) {
+            String categoryId = db.collection("categories").document().getId();
+            Category category = new Category(
+                    categoryId,
+                    userId,
+                    categoryName,
+                    "expense",
+                    true
+            );
+            db.collection("categories").document(categoryId).set(category)
+                    .addOnSuccessListener(aVoid ->
+                            Log.d(TAG, "Expense Category created: " + categoryName))
+                    .addOnFailureListener(e ->
+                            Log.e(TAG, "Error creating expense category", e));
+        }
+
+        // Default Income Categories
+        String[] defaultIncomeCategories = {
+                "Tiền lương", "Tiền phụ cấp", "Tiền thưởng", "Thu nhập phụ",
+                "Đầu tư", "Thu nhập tạm thời"
+        };
+        for (String categoryName : defaultIncomeCategories) {
+            String categoryId = db.collection("categories").document().getId();
+            Category category = new Category(
+                    categoryId,
+                    userId,
+                    categoryName,
+                    "income",
+                    true
+            );
+            db.collection("categories").document(categoryId).set(category)
+                    .addOnSuccessListener(aVoid ->
+                            Log.d(TAG, "Income Category created: " + categoryName))
+                    .addOnFailureListener(e ->
+                            Log.e(TAG, "Error creating income category", e));
+        }
+    }
+
     private void updateUI(FirebaseUser user) {
         if (user != null) {
             Toast.makeText(this, "Sign up successful: " + user.getEmail(), Toast.LENGTH_SHORT).show();
+            // Sau khi đăng ký thành công và tạo danh mục, chuyển hướng đến LoginActivity để đăng nhập
             Intent intent = new Intent(this, LoginActivity.class);
             startActivity(intent);
             finish();
         } else {
-            // Không làm gì thêm, vì thông báo lỗi đã được hiển thị trong createAccount
+            // Không làm gì thêm nếu user là null
         }
     }
 }

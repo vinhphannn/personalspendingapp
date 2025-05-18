@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/navigation_input"
+        android:icon="@android:drawable/ic_menu_edit"
+        android:title="Nhập" />
+
+    <item
+        android:id="@+id/navigation_calendar"
+        android:icon="@android:drawable/ic_menu_today"
+        android:title="Lịch" />
+
+    <item
+        android:id="@+id/navigation_report"
+        android:icon="@android:drawable/ic_menu_sort_by_size"
+        android:title="Báo cáo" />
+
+    <item
+        android:id="@+id/navigation_other"
+        android:icon="@android:drawable/ic_menu_more"
+        android:title="Khác" />
+
+</menu> 
