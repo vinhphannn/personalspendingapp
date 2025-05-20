@@ -19,8 +19,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.personalspendingapp.R;
 import com.example.personalspendingapp.adapters.CategoryAdapter;
+import com.example.personalspendingapp.data.DataManager;
 import com.example.personalspendingapp.models.Category;
 import com.example.personalspendingapp.models.Expense;
+import com.example.personalspendingapp.models.Transaction;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -32,6 +34,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 
 public class ExpenseFragment extends Fragment {
     private static final String TAG = "ExpenseFragment";
@@ -76,8 +80,7 @@ public class ExpenseFragment extends Fragment {
         categories = new ArrayList<>();
         categoryAdapter = new CategoryAdapter(categories, (category, position) -> {
             selectedCategory = category;
-            // Optional: Show selected category name
-            // Toast.makeText(getContext(), "Selected: " + category.getName(), Toast.LENGTH_SHORT).show();
+            categoryAdapter.setSelectedPosition(position);
         });
         rvCategories.setLayoutManager(new GridLayoutManager(getContext(), 3));
         rvCategories.setAdapter(categoryAdapter);
@@ -86,7 +89,42 @@ public class ExpenseFragment extends Fragment {
     private void setupFirebase() {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
-        loadCategories();
+        
+        // Thêm listener cho việc load dữ liệu
+        DataManager dataManager = DataManager.getInstance();
+        dataManager.setDataLoadedListener(new DataManager.OnDataLoadedListener() {
+            @Override
+            public void onDataLoaded() {
+                // Load lại danh mục khi dữ liệu đã sẵn sàng
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        loadCategories();
+                        // Ẩn loading sau khi load xong
+                        progressBar.setVisibility(View.GONE);
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        Toast.makeText(getContext(), "Lỗi khi tải dữ liệu: " + error, Toast.LENGTH_SHORT).show();
+                        // Ẩn loading khi có lỗi
+                        progressBar.setVisibility(View.GONE);
+                    });
+                }
+            }
+        });
+        
+        // Chỉ load categories nếu dữ liệu đã sẵn sàng
+        if (dataManager.isDataLoaded()) {
+            loadCategories();
+        } else {
+            // Hiển thị loading và bắt đầu load dữ liệu
+            progressBar.setVisibility(View.VISIBLE);
+            dataManager.loadUserData();
+        }
     }
 
     private void setupDateSelection() {
@@ -116,25 +154,31 @@ public class ExpenseFragment extends Fragment {
     }
 
     private void loadCategories() {
-        FirebaseUser currentUser = auth.getCurrentUser();
-        if (currentUser != null) {
-            String userId = currentUser.getUid();
-            db.collection("categories")
-                    .whereEqualTo("userId", userId)
-                    .whereEqualTo("type", "expense")
-                    .get()
-                    .addOnSuccessListener(queryDocumentSnapshots -> {
-                        categories.clear();
-                        categories.addAll(queryDocumentSnapshots.toObjects(Category.class));
-                        categoryAdapter.updateCategories(categories);
-                         Log.d(TAG, "Categories loaded: " + categories.size());
-                    })
-                    .addOnFailureListener(e ->
-                        Toast.makeText(getContext(), "Lỗi khi tải danh mục: " + e.getMessage(), Toast.LENGTH_SHORT).show()
-                    );
+        DataManager dataManager = DataManager.getInstance();
+        Log.d(TAG, "Loading categories, isDataLoaded: " + dataManager.isDataLoaded());
+        
+        if (!dataManager.isDataLoaded()) {
+            Log.d(TAG, "Data not loaded yet, waiting for data to be ready");
+            return;
+        }
+
+        Map<String, List<Category>> allCategories = dataManager.getCategories();
+        Log.d(TAG, "All categories: " + allCategories.toString());
+        
+        if (allCategories != null && allCategories.containsKey("expense")) {
+            List<Category> expenseCategories = allCategories.get("expense");
+            Log.d(TAG, "Expense categories found: " + expenseCategories.toString());
+            
+            categories.clear();
+            for (Category category : expenseCategories) {
+                categories.add(category);
+                Log.d(TAG, "Added category: " + category.getName());
+            }
+            categoryAdapter.updateCategories(categories);
+            Log.d(TAG, "Expense Categories loaded: " + categories.size());
         } else {
-             Toast.makeText(getContext(), "Người dùng chưa đăng nhập", Toast.LENGTH_SHORT).show();
-             Log.w(TAG, "User not logged in, cannot load categories.");
+            Log.e(TAG, "No expense categories found in: " + allCategories);
+            // Không gọi loadUserData() ở đây nữa vì đã có listener
         }
     }
 
@@ -178,48 +222,42 @@ public class ExpenseFragment extends Fragment {
 
     private void saveExpense() {
         progressBar.setVisibility(View.VISIBLE);
-        btnSubmit.setEnabled(false); // Disable button to prevent multiple clicks
+        btnSubmit.setEnabled(false);
 
-        FirebaseUser currentUser = auth.getCurrentUser();
-        if (currentUser != null) {
-            String userId = currentUser.getUid();
+        if (!validateInput()) {
+            progressBar.setVisibility(View.GONE);
+            btnSubmit.setEnabled(true);
+            return;
+        }
+
+        DataManager dataManager = DataManager.getInstance();
+        if (!dataManager.isDataLoaded()) {
+            Toast.makeText(getContext(), "Đang tải dữ liệu, vui lòng đợi...", Toast.LENGTH_SHORT).show();
+            progressBar.setVisibility(View.GONE);
+            btnSubmit.setEnabled(true);
+            return;
+        }
+
             double amount = Double.parseDouble(etAmount.getText().toString().trim());
             String note = etNote.getText().toString().trim();
             Date date = selectedDate.getTime();
 
-            Expense expense = new Expense(
-                    db.collection("expenses").document().getId(),
-                    userId,
+        Transaction transaction = new Transaction(
+                UUID.randomUUID().toString(),
                     amount,
-                    date,
+                "expense",
+                selectedCategory.getId(),
                     note,
-                    selectedCategory.getName()
-            );
+                date
+        );
 
-            db.collection("expenses")
-                    .document(expense.getId())
-                    .set(expense)
-                    .addOnSuccessListener(aVoid -> {
+        dataManager.addTransaction(transaction);
+        
                         progressBar.setVisibility(View.GONE);
                         btnSubmit.setEnabled(true);
                         Toast.makeText(getContext(), "Đã lưu khoản chi thành công", Toast.LENGTH_SHORT).show();
                         clearInputs();
-                        categoryAdapter.setSelectedPosition(RecyclerView.NO_POSITION); // Reset selected category UI
-                    })
-                    .addOnFailureListener(e ->
-                        {
-                             progressBar.setVisibility(View.GONE);
-                             btnSubmit.setEnabled(true);
-                             Toast.makeText(getContext(), "Lỗi khi lưu khoản chi: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                             Log.e(TAG, "Error saving expense", e);
-                        }
-                    );
-        } else {
-            progressBar.setVisibility(View.GONE);
-            btnSubmit.setEnabled(true);
-            Toast.makeText(getContext(), "Người dùng chưa đăng nhập", Toast.LENGTH_SHORT).show();
-            Log.w(TAG, "User not logged in, cannot save expense.");
-        }
+        categoryAdapter.setSelectedPosition(RecyclerView.NO_POSITION);
     }
 
     private void clearInputs() {

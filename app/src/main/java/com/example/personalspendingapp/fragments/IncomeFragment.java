@@ -19,8 +19,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.personalspendingapp.R;
 import com.example.personalspendingapp.adapters.CategoryAdapter;
+import com.example.personalspendingapp.data.DataManager;
 import com.example.personalspendingapp.models.Category;
 import com.example.personalspendingapp.models.Income;
+import com.example.personalspendingapp.models.Transaction;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -32,6 +34,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 
 public class IncomeFragment extends Fragment {
     private static final String TAG = "IncomeFragment";
@@ -76,8 +80,7 @@ public class IncomeFragment extends Fragment {
         categories = new ArrayList<>();
         categoryAdapter = new CategoryAdapter(categories, (category, position) -> {
             selectedCategory = category;
-            // Optional: Show selected category name
-            // Toast.makeText(getContext(), "Selected: " + category.getName(), Toast.LENGTH_SHORT).show();
+            categoryAdapter.setSelectedPosition(position);
         });
         rvCategories.setLayoutManager(new GridLayoutManager(getContext(), 3));
         rvCategories.setAdapter(categoryAdapter);
@@ -116,25 +119,31 @@ public class IncomeFragment extends Fragment {
     }
 
     private void loadCategories() {
-        FirebaseUser currentUser = auth.getCurrentUser();
-        if (currentUser != null) {
-            String userId = currentUser.getUid();
-            db.collection("categories")
-                    .whereEqualTo("userId", userId)
-                    .whereEqualTo("type", "income") // Load income categories
-                    .get()
-                    .addOnSuccessListener(queryDocumentSnapshots -> {
+        DataManager dataManager = DataManager.getInstance();
+        if (!dataManager.isDataLoaded()) {
+            Toast.makeText(getContext(), "Đang tải dữ liệu, vui lòng đợi...", Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "Data not loaded yet");
+            return;
+        }
+
+        Map<String, List<Category>> allCategories = dataManager.getCategories();
+        Log.d(TAG, "All categories: " + allCategories.toString());
+        
+        if (allCategories != null && allCategories.containsKey("income")) {
+            List<Category> incomeCategories = allCategories.get("income");
+            Log.d(TAG, "Income categories found: " + incomeCategories.toString());
+            
                         categories.clear();
-                        categories.addAll(queryDocumentSnapshots.toObjects(Category.class));
+            for (Category category : incomeCategories) {
+                categories.add(category);
+                Log.d(TAG, "Added category: " + category.getName());
+            }
                         categoryAdapter.updateCategories(categories);
                         Log.d(TAG, "Income Categories loaded: " + categories.size());
-                    })
-                    .addOnFailureListener(e ->
-                        Toast.makeText(getContext(), "Lỗi khi tải danh mục thu nhập: " + e.getMessage(), Toast.LENGTH_SHORT).show()
-                    );
         } else {
-             Toast.makeText(getContext(), "Người dùng chưa đăng nhập", Toast.LENGTH_SHORT).show();
-             Log.w(TAG, "User not logged in, cannot load income categories.");
+            Log.e(TAG, "No income categories found in: " + allCategories);
+            // Thử tải lại dữ liệu nếu không tìm thấy danh mục
+            dataManager.loadUserData();
         }
     }
 
@@ -178,49 +187,42 @@ public class IncomeFragment extends Fragment {
 
     private void saveIncome() {
         progressBar.setVisibility(View.VISIBLE);
-        btnSubmit.setEnabled(false); // Disable button to prevent multiple clicks
+        btnSubmit.setEnabled(false);
 
-        FirebaseUser currentUser = auth.getCurrentUser();
-        if (currentUser != null) {
-            String userId = currentUser.getUid();
+        if (!validateInput()) {
+            progressBar.setVisibility(View.GONE);
+            btnSubmit.setEnabled(true);
+            return;
+        }
+
+        DataManager dataManager = DataManager.getInstance();
+        if (!dataManager.isDataLoaded()) {
+            Toast.makeText(getContext(), "Đang tải dữ liệu, vui lòng đợi...", Toast.LENGTH_SHORT).show();
+            progressBar.setVisibility(View.GONE);
+            btnSubmit.setEnabled(true);
+            return;
+        }
+
             double amount = Double.parseDouble(etAmount.getText().toString().trim());
             String note = etNote.getText().toString().trim();
             Date date = selectedDate.getTime();
 
-            // Use Income model (need to create) or Expense with type? Let's create Income model for clarity.
-            Income income = new Income(
-                    db.collection("incomes").document().getId(), // Use 'incomes' collection
-                    userId,
+        Transaction transaction = new Transaction(
+                UUID.randomUUID().toString(),
                     amount,
-                    date,
+                "income",
+                selectedCategory.getId(),
                     note,
-                    selectedCategory.getName()
-            );
+                date
+        );
 
-            db.collection("incomes") // Save to 'incomes' collection
-                    .document(income.getId())
-                    .set(income)
-                    .addOnSuccessListener(aVoid -> {
+        dataManager.addTransaction(transaction);
+        
                         progressBar.setVisibility(View.GONE);
                         btnSubmit.setEnabled(true);
                         Toast.makeText(getContext(), "Đã lưu khoản thu thành công", Toast.LENGTH_SHORT).show();
                         clearInputs();
-                        categoryAdapter.setSelectedPosition(RecyclerView.NO_POSITION); // Reset selected category UI
-                    })
-                    .addOnFailureListener(e ->
-                        {
-                             progressBar.setVisibility(View.GONE);
-                             btnSubmit.setEnabled(true);
-                             Toast.makeText(getContext(), "Lỗi khi lưu khoản thu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                             Log.e(TAG, "Error saving income", e);
-                        }
-                    );
-        } else {
-            progressBar.setVisibility(View.GONE);
-            btnSubmit.setEnabled(true);
-            Toast.makeText(getContext(), "Người dùng chưa đăng nhập", Toast.LENGTH_SHORT).show();
-            Log.w(TAG, "User not logged in, cannot save income.");
-        }
+        categoryAdapter.setSelectedPosition(RecyclerView.NO_POSITION);
     }
 
     private void clearInputs() {

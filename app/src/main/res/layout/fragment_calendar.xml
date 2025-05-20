@@ -66,6 +66,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
+            android:background="@drawable/calendar_border"
+            android:padding="1dp"
             app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
             app:spanCount="7" />
 
@@ -131,6 +133,15 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Container for Daily Transactions -->
+        <LinearLayout
+            android:id="@+id/dailyTransactionsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="16dp">
+            <!-- Daily transaction headers and items will be added here dynamically -->
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView> 

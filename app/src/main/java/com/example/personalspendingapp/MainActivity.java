@@ -31,6 +31,7 @@ import com.example.personalspendingapp.fragments.CalendarFragment;
 import com.example.personalspendingapp.fragments.ReportFragment;
 
 import com.example.personalspendingapp.adapters.TabPagerAdapter;
+import com.example.personalspendingapp.data.DataManager;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.tabs.TabLayout;
@@ -41,6 +42,7 @@ import com.google.firebase.auth.FirebaseUser;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity implements CalendarFragment.OnDaySelectedListener {
+    private static final String TAG = "MainActivity";
     private ViewPager2 viewPager;
     private BottomNavigationView bottomNavigationView;
     private LinearLayout inputTabsContainer;
@@ -79,15 +81,6 @@ public class MainActivity extends AppCompatActivity implements CalendarFragment.
         tvTabIncome = findViewById(R.id.tvTabIncome);
         fragmentManager = getSupportFragmentManager();
 
-        // Initialize Fragments - Only keep references for input fragments if needed to update date
-        // The actual fragment instances are created by the TabPagerAdapter
-         expenseFragment = new ExpenseFragment(); // Initialize to keep reference
-         incomeFragment = new IncomeFragment(); // Initialize to keep reference
-        // Removed other fragment initializations
-        // calendarFragment = new CalendarFragment();
-        // reportFragment = new ReportFragment();
-        // otherFragment = new OtherFragment();
-
         // Setup ViewPager2
         setupViewPager();
 
@@ -102,6 +95,38 @@ public class MainActivity extends AppCompatActivity implements CalendarFragment.
 
         // Set initial state of custom tabs
         updateCustomTabsState(viewPager.getCurrentItem());
+
+        // Khởi tạo DataManager và load dữ liệu
+        DataManager dataManager = DataManager.getInstance();
+        dataManager.setDataLoadedListener(new DataManager.OnDataLoadedListener() {
+            @Override
+            public void onDataLoaded() {
+                runOnUiThread(() -> {
+                    try {
+                        // Khởi tạo các fragment và UI khác
+                        setupUI();
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error in onDataLoaded", e);
+                        Toast.makeText(MainActivity.this, "Lỗi khi khởi tạo giao diện", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "Lỗi khi tải dữ liệu: " + error, Toast.LENGTH_LONG).show();
+                    // Chuyển về màn hình đăng nhập nếu có lỗi
+                    Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    finish();
+                });
+            }
+        });
+
+        // Load dữ liệu
+        dataManager.loadUserData();
     }
 
     @Override
@@ -150,48 +175,57 @@ public class MainActivity extends AppCompatActivity implements CalendarFragment.
             public void onPageSelected(int position) {
                 super.onPageSelected(position);
 
-                 // Update BottomNavigationView selection
-                 // Important: This must be done first to ensure correct tab is selected before checking its type
-                 int bottomNavItemId = -1;
-                 if (position == 0 || position == 1) bottomNavItemId = R.id.navigation_input;
-                 else if (position == 2) bottomNavItemId = R.id.navigation_calendar;
-                 else if (position == 3) bottomNavItemId = R.id.navigation_report;
-                 else if (position == 4) bottomNavItemId = R.id.navigation_other;
+                // Update BottomNavigationView selection
+                // Important: This must be done first to ensure correct tab is selected before checking its type
+                int bottomNavItemId = -1;
+                if (position == 0 || position == 1) bottomNavItemId = R.id.navigation_input;
+                else if (position == 2) bottomNavItemId = R.id.navigation_calendar;
+                else if (position == 3) bottomNavItemId = R.id.navigation_report;
+                else if (position == 4) bottomNavItemId = R.id.navigation_other;
 
-                 if (bottomNavItemId != -1) {
-                     // Remove listener temporarily to prevent infinite loop
-                     bottomNavigationView.setOnNavigationItemSelectedListener(null);
-                     bottomNavigationView.setSelectedItemId(bottomNavItemId);
-                     setupBottomNavigationView(); // Re-attach listener
-                 }
+                if (bottomNavItemId != -1) {
+                    // Remove listener temporarily to prevent infinite loop
+                    bottomNavigationView.setOnNavigationItemSelectedListener(null);
+                    bottomNavigationView.setSelectedItemId(bottomNavItemId);
+                    setupBottomNavigationView(); // Re-attach listener
+                }
 
-                 // Handle showing/hiding TabLayout based on current tab
-                 if (position >= 0 && position < 2) { // Input tabs (Expense and Income)
-                     showInputTabs(); // Ensure TabLayout is visible
-                 } else { // Other tabs (Calendar, Report, Other)
-                     hideInputTabs(); // Ensure TabLayout is hidden
-                 }
+                // Handle showing/hiding TabLayout based on current tab
+                if (position >= 0 && position < 2) { // Input tabs (Expense and Income)
+                    showInputTabs(); // Ensure TabLayout is visible
+                    // Cập nhật trạng thái tab ngay khi chuyển trang
+                    updateCustomTabsState(position);
+                } else { // Other tabs (Calendar, Report, Other)
+                    hideInputTabs(); // Ensure TabLayout is hidden
+                }
 
-                 // When switching to Input tabs (Expense or Income) after selecting date from Calendar,
-                 // ensure the selected date is set on the fragment
-                 if (selectedDateForInputTabs != null) { 
-                     // We need to get the currently active fragment from the ViewPager
-                     // Use findFragmentByTag with ViewPager2 fragment tag format: "f" + adapter.getItemId(position)
-                     String fragmentTag = "f" + tabPagerAdapter.getItemId(position);
-                     Fragment activeFragment = getSupportFragmentManager().findFragmentByTag(fragmentTag);
+                // When switching to Input tabs (Expense or Income) after selecting date from Calendar,
+                // ensure the selected date is set on the fragment
+                if (selectedDateForInputTabs != null) { 
+                    // We need to get the currently active fragment from the ViewPager
+                    // Use findFragmentByTag with ViewPager2 fragment tag format: "f" + adapter.getItemId(position)
+                    String fragmentTag = "f" + tabPagerAdapter.getItemId(position);
+                    Fragment activeFragment = getSupportFragmentManager().findFragmentByTag(fragmentTag);
 
-                     if (position == 0 && activeFragment instanceof ExpenseFragment) { // Expense tab
-                         ((ExpenseFragment) activeFragment).setSelectedDate(selectedDateForInputTabs);
-                     } else if (position == 1 && activeFragment instanceof IncomeFragment) { // Income tab
-                         ((IncomeFragment) activeFragment).setSelectedDate(selectedDateForInputTabs);
-                     }
-                 }
+                    if (position == 0 && activeFragment instanceof ExpenseFragment) { // Expense tab
+                        ((ExpenseFragment) activeFragment).setSelectedDate(selectedDateForInputTabs);
+                    } else if (position == 1 && activeFragment instanceof IncomeFragment) { // Income tab
+                        ((IncomeFragment) activeFragment).setSelectedDate(selectedDateForInputTabs);
+                    }
+                }
             }
         });
 
-         // Add click listeners for custom tabs
-        tvTabExpense.setOnClickListener(v -> viewPager.setCurrentItem(0, false)); // Switch to Expense fragment
-        tvTabIncome.setOnClickListener(v -> viewPager.setCurrentItem(1, false)); // Switch to Income fragment
+        // Add click listeners for custom tabs
+        tvTabExpense.setOnClickListener(v -> {
+            viewPager.setCurrentItem(0, false); // Switch to Expense fragment
+            updateCustomTabsState(0); // Cập nhật trạng thái tab ngay khi click
+        });
+        
+        tvTabIncome.setOnClickListener(v -> {
+            viewPager.setCurrentItem(1, false); // Switch to Income fragment
+            updateCustomTabsState(1); // Cập nhật trạng thái tab ngay khi click
+        });
     }
 
     private void setupBottomNavigationView() {
@@ -256,17 +290,21 @@ public class MainActivity extends AppCompatActivity implements CalendarFragment.
     // Helper method to update the visual state of custom tabs
     private void updateCustomTabsState(int position) {
         if (position == 0) { // Expense tab is selected
-            tvTabExpense.setTextColor(getResources().getColor(R.color.purple_500)); // Highlight Expense
-            tvTabExpense.setTypeface(null, android.graphics.Typeface.BOLD); // Make text bold
-            tvTabIncome.setTextColor(getResources().getColor(android.R.color.tab_indicator_text)); // Dim Income
-            tvTabIncome.setTypeface(null, android.graphics.Typeface.NORMAL); // Make text normal
-            // You might want to add a visual indicator like an underline here as well
+            tvTabExpense.setTextColor(getResources().getColor(R.color.purple_700)); // Màu tím đậm cho tab đang chọn
+            tvTabExpense.setTypeface(null, android.graphics.Typeface.BOLD); // Chữ đậm
+            tvTabExpense.setBackgroundResource(R.drawable.tab_background_selected); // Thêm background cho tab đang chọn
+            
+            tvTabIncome.setTextColor(getResources().getColor(android.R.color.darker_gray)); // Màu xám cho tab không chọn
+            tvTabIncome.setTypeface(null, android.graphics.Typeface.NORMAL); // Chữ thường
+            tvTabIncome.setBackgroundResource(android.R.color.transparent); // Không có background
         } else if (position == 1) { // Income tab is selected
-            tvTabExpense.setTextColor(getResources().getColor(android.R.color.tab_indicator_text)); // Dim Expense
-            tvTabExpense.setTypeface(null, android.graphics.Typeface.NORMAL); // Make text normal
-            tvTabIncome.setTextColor(getResources().getColor(R.color.purple_500)); // Highlight Income
-            tvTabIncome.setTypeface(null, android.graphics.Typeface.BOLD); // Make text bold
-            // You might want to add a visual indicator like an underline here as well
+            tvTabExpense.setTextColor(getResources().getColor(android.R.color.darker_gray)); // Màu xám cho tab không chọn
+            tvTabExpense.setTypeface(null, android.graphics.Typeface.NORMAL); // Chữ thường
+            tvTabExpense.setBackgroundResource(android.R.color.transparent); // Không có background
+            
+            tvTabIncome.setTextColor(getResources().getColor(R.color.purple_700)); // Màu tím đậm cho tab đang chọn
+            tvTabIncome.setTypeface(null, android.graphics.Typeface.BOLD); // Chữ đậm
+            tvTabIncome.setBackgroundResource(R.drawable.tab_background_selected); // Thêm background cho tab đang chọn
         }
          // For other positions, the inputTabsContainer is hidden, so no need to update state
     }
@@ -278,5 +316,19 @@ public class MainActivity extends AppCompatActivity implements CalendarFragment.
         // Set the selected item in BottomNavigationView, which will trigger tab switch via listener
         bottomNavigationView.setSelectedItemId(R.id.navigation_input);
         // The date will be set on the appropriate fragment by the BottomNavigationView listener after the tab switch
+    }
+
+    private void setupUI() {
+        try {
+            // Khởi tạo các fragment
+            expenseFragment = new ExpenseFragment();
+            incomeFragment = new IncomeFragment();
+
+            // Cập nhật UI
+            updateCustomTabsState(viewPager.getCurrentItem());
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting up UI", e);
+            throw e; // Ném lỗi để xử lý ở trên
+        }
     }
 }

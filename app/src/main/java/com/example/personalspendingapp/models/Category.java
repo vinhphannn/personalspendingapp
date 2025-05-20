@@ -2,61 +2,31 @@ package com.example.personalspendingapp.models;
 
 public class Category {
     private String id;
-    private String userId;
     private String name;
-    private String type; // "expense" or "income"
-    private boolean isDefault;
+    private String icon;
+    private String type;
 
     public Category() {
-        // Required empty constructor for Firebase
+        // Required empty constructor for Firestore
     }
 
-    public Category(String id, String userId, String name, String type, boolean isDefault) {
+    public Category(String id, String name, String icon, String type) {
         this.id = id;
-        this.userId = userId;
         this.name = name;
+        this.icon = icon;
         this.type = type;
-        this.isDefault = isDefault;
     }
 
     // Getters and Setters
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public String getUserId() {
-        return userId;
-    }
+    public String getIcon() { return icon; }
+    public void setIcon(String icon) { this.icon = icon; }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public boolean isDefault() {
-        return isDefault;
-    }
-
-    public void setDefault(boolean isDefault) {
-        this.isDefault = isDefault;
-    }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
 } 

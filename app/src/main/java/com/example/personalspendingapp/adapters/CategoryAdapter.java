@@ -75,6 +75,12 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
             tvCategoryName.setText(category.getName());
 
             itemView.setSelected(selectedPosition == position);
+            
+            if (selectedPosition == position) {
+                tvCategoryName.setTextColor(itemView.getContext().getResources().getColor(android.R.color.white));
+            } else {
+                tvCategoryName.setTextColor(itemView.getContext().getResources().getColor(android.R.color.black));
+            }
 
             itemView.setOnClickListener(v -> {
                 if (listener != null) {
