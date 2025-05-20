@@ -8,6 +8,7 @@ import com.example.personalspendingapp.models.UserProfile;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FieldValue;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -25,6 +26,8 @@ public class DataManager {
     private boolean isDataLoaded = false;
     private boolean isLoading = false;
     private OnDataLoadedListener dataLoadedListener;
+    private List<Transaction> transactions;
+    private List<Category> categories;
 
     public interface OnDataLoadedListener {
         void onDataLoaded();
@@ -34,6 +37,26 @@ public class DataManager {
     private DataManager() {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
+        transactions = new ArrayList<>();
+        categories = new ArrayList<>();
+        initializeDefaultCategories();
+    }
+
+    private void initializeDefaultCategories() {
+        Log.d(TAG, "Initializing default categories");
+        // Danh mục chi tiêu mặc định
+        categories.add(new Category("1", "Ăn uống", "expense", "#FF5722"));
+        categories.add(new Category("2", "Di chuyển", "expense", "#2196F3"));
+        categories.add(new Category("3", "Mua sắm", "expense", "#9C27B0"));
+        categories.add(new Category("4", "Giải trí", "expense", "#4CAF50"));
+        categories.add(new Category("5", "Hóa đơn", "expense", "#F44336"));
+
+        // Danh mục thu nhập mặc định
+        categories.add(new Category("7", "Lương", "income", "#4CAF50"));
+        categories.add(new Category("8", "Thưởng", "income", "#FFC107"));
+        categories.add(new Category("9", "Đầu tư", "income", "#2196F3"));
+        categories.add(new Category("10", "Khác", "income", "#757575"));
+        Log.d(TAG, "Default categories initialized: " + categories.size());
     }
 
     public static synchronized DataManager getInstance() {
@@ -72,8 +95,24 @@ public class DataManager {
             .addOnSuccessListener(documentSnapshot -> {
                 if (documentSnapshot.exists()) {
                     userData = documentSnapshot.toObject(UserData.class);
+                    if (userData != null) {
+                        // Cập nhật danh sách categories từ userData
+                        Map<String, List<Category>> userCategories = userData.getCategories();
+                        if (userCategories != null) {
+                            categories.clear();
+                            // Thêm danh mục mặc định
+                            initializeDefaultCategories();
+                            // Thêm danh mục của user
+                            for (List<Category> typeCategories : userCategories.values()) {
+                                categories.addAll(typeCategories);
+                            }
+                        }
+                        // Cập nhật danh sách transactions
+                        transactions.clear();
+                        transactions.addAll(userData.getTransactions());
+                    }
                     isDataLoaded = true;
-                    Log.d(TAG, "User data loaded successfully");
+                    Log.d(TAG, "User data loaded successfully. Categories: " + categories.size() + ", Transactions: " + transactions.size());
                     if (dataLoadedListener != null) {
                         dataLoadedListener.onDataLoaded();
                     }
@@ -170,6 +209,8 @@ public class DataManager {
     }
 
     public void addTransaction(Transaction transaction) {
+        Log.d(TAG, "Adding new transaction: " + transaction.getAmount());
+        transactions.add(transaction);
         if (userData != null) {
             userData.addTransaction(transaction);
             saveUserData();
@@ -177,9 +218,63 @@ public class DataManager {
     }
 
     public void addCategory(Category category) {
+        Log.d(TAG, "Adding new category: " + category.getName());
+        
+        FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser == null) {
+            Log.e(TAG, "Cannot add category: user is not logged in");
+            return;
+        }
+
+        String userId = currentUser.getUid();
+        
+        // Thêm vào danh sách local
+        categories.add(category);
+        
+        // Thêm vào userData
         if (userData != null) {
-            userData.addCategory(category);
-            saveUserData();
+            // Lấy danh sách categories hiện tại
+            Map<String, List<Category>> userCategories = userData.getCategories();
+            if (userCategories == null) {
+                userCategories = new HashMap<>();
+                // Khởi tạo mảng expense và income nếu chưa có
+                userCategories.put("expense", new ArrayList<>());
+                userCategories.put("income", new ArrayList<>());
+                userData.setCategories(userCategories); // Cập nhật userData local
+            }
+
+            // Lấy danh sách categories theo type
+            List<Category> typeCategories = userCategories.get(category.getType());
+            if (typeCategories == null) {
+                typeCategories = new ArrayList<>();
+                userCategories.put(category.getType(), typeCategories);
+                 userData.setCategories(userCategories); // Cập nhật userData local
+            }
+
+            // Thêm category mới vào danh sách local
+            typeCategories.add(category);
+            
+            // Lưu vào Firestore - thêm vào mảng trong Map categories
+            db.collection("users").document(userId)
+                .update("categories." + category.getType(), FieldValue.arrayUnion(category))
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Category added successfully to database");
+                    if (dataLoadedListener != null) {
+                        dataLoadedListener.onDataLoaded();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error adding category to database", e);
+                    // Rollback local changes
+                    categories.remove(category);
+                    // Tải lại dữ liệu từ database để đồng bộ
+                    loadUserData(); 
+                    if (dataLoadedListener != null) {
+                        dataLoadedListener.onError(e.getMessage());
+                    }
+                });
+        } else {
+            Log.e(TAG, "Cannot add category: userData is null");
         }
     }
 
@@ -189,14 +284,13 @@ public class DataManager {
     }
 
     public List<Transaction> getTransactionsByDateRange(Date startDate, Date endDate) {
-        if (userData == null) return new ArrayList<>();
         List<Transaction> filteredTransactions = new ArrayList<>();
-        for (Transaction transaction : userData.getTransactions()) {
-            Date transactionDate = transaction.getDate();
-            if (!transactionDate.before(startDate) && !transactionDate.after(endDate)) {
+        for (Transaction transaction : transactions) {
+            if (!transaction.getDate().before(startDate) && !transaction.getDate().after(endDate)) {
                 filteredTransactions.add(transaction);
             }
         }
+        Log.d(TAG, "Getting transactions by date range: " + filteredTransactions.size());
         return filteredTransactions;
     }
 
@@ -245,19 +339,22 @@ public class DataManager {
 
     // Method to get a category by its ID and type
     public Category getCategoryById(String categoryId, String type) {
-        if (userData != null && userData.getCategories() != null) {
-            Map<String, List<Category>> categoriesMap = userData.getCategories();
-            if (categoriesMap.containsKey(type)) {
-                List<Category> categoryList = categoriesMap.get(type);
-                if (categoryList != null) {
-                    for (Category category : categoryList) {
-                        if (category.getId().equals(categoryId)) {
-                            return category;
-                        }
-                    }
-                }
+        for (Category category : categories) {
+            if (category.getId().equals(categoryId) && category.getType().equals(type)) {
+                return category;
             }
         }
         return null; // Return null if category not found
+    }
+
+    public List<Category> getCategoriesByType(String type) {
+        List<Category> filteredCategories = new ArrayList<>();
+        for (Category category : categories) {
+            if (category.getType().equals(type)) {
+                filteredCategories.add(category);
+            }
+        }
+        Log.d(TAG, "Getting categories by type " + type + ": " + filteredCategories.size());
+        return filteredCategories;
     }
 } 

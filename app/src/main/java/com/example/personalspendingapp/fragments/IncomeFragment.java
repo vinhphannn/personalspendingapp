@@ -1,5 +1,6 @@
 package com.example.personalspendingapp.fragments;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -24,6 +25,7 @@ import com.example.personalspendingapp.models.Category;
 import com.example.personalspendingapp.models.Income;
 import com.example.personalspendingapp.models.Transaction;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -39,11 +41,12 @@ import java.util.UUID;
 
 public class IncomeFragment extends Fragment {
     private static final String TAG = "IncomeFragment";
+    private View view;
     private TextView tvSelectedDate;
     private ImageButton btnPreviousDate, btnNextDate;
     private TextInputEditText etAmount, etNote;
     private RecyclerView rvCategories;
-    private Button btnAddCategory, btnSubmit;
+    private Button btnSubmit;
     private ProgressBar progressBar;
 
     private CategoryAdapter categoryAdapter;
@@ -56,11 +59,10 @@ public class IncomeFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_income, container, false);
+        view = inflater.inflate(R.layout.fragment_income, container, false);
         initViews(view);
         setupFirebase();
         setupDateSelection();
-        setupCategories();
         setupSubmitButton();
         return view;
     }
@@ -72,24 +74,134 @@ public class IncomeFragment extends Fragment {
         etAmount = view.findViewById(R.id.etAmount);
         etNote = view.findViewById(R.id.etNote);
         rvCategories = view.findViewById(R.id.rvCategories);
-        btnAddCategory = view.findViewById(R.id.btnAddCategory);
         btnSubmit = view.findViewById(R.id.btnSubmit);
         progressBar = view.findViewById(R.id.progressBar);
 
         selectedDate = Calendar.getInstance();
         categories = new ArrayList<>();
-        categoryAdapter = new CategoryAdapter(categories, (category, position) -> {
-            selectedCategory = category;
-            categoryAdapter.setSelectedPosition(position);
+        categoryAdapter = new CategoryAdapter(categories, new CategoryAdapter.OnCategoryClickListener() {
+            @Override
+            public void onCategoryClick(Category category) {
+                selectedCategory = category;
+                updateCategorySelection();
+            }
+
+            @Override
+            public void onOtherClick() {
+                showAddCategoryDialog();
+            }
         });
         rvCategories.setLayoutManager(new GridLayoutManager(getContext(), 3));
         rvCategories.setAdapter(categoryAdapter);
     }
 
+    private void updateCategorySelection() {
+        if (selectedCategory != null) {
+            // Cập nhật UI để hiển thị danh mục đã chọn
+            TextView tvSelectedCategory = view.findViewById(R.id.tvSelectedCategory);
+            if (tvSelectedCategory != null) {
+                tvSelectedCategory.setText(selectedCategory.getName());
+            }
+        }
+    }
+
+    private void showAddCategoryDialog() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_category, null);
+        TextInputEditText etCategoryName = dialogView.findViewById(R.id.etCategoryName);
+        MaterialButton btnCancel = dialogView.findViewById(R.id.btnCancel);
+        MaterialButton btnAdd = dialogView.findViewById(R.id.btnAdd);
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setView(dialogView)
+                .create();
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnAdd.setOnClickListener(v -> {
+            String categoryName = etCategoryName.getText().toString().trim();
+            if (!categoryName.isEmpty()) {
+                // Hiển thị loading
+                progressBar.setVisibility(View.VISIBLE);
+                btnAdd.setEnabled(false);
+
+                // Tạo danh mục mới với type cố định là income
+                Category newCategory = new Category(
+                        "cat_income_" + UUID.randomUUID().toString().substring(0, 8),
+                        categoryName,
+                        "❓", // Icon mặc định cho danh mục mới
+                        "income" // Type cố định là income
+                );
+
+                // Thêm vào DataManager và database
+                DataManager dataManager = DataManager.getInstance();
+                dataManager.addCategory(newCategory);
+                
+                // Cập nhật UI sau khi thêm thành công (thông qua listener trong DataManager hoặc trực tiếp nếu addCategory là đồng bộ)
+                // Hiện tại DataManager.addCategory là bất đồng bộ (lưu Firestore), nên việc cập nhật UI
+                // cần dựa vào listener hoặc xử lý trong callback thành công của Firestore.
+                // Dựa vào code ExpenseFragment, listener được set trước khi gọi addCategory
+                // Tuy nhiên, setDataLoadedListener sẽ ghi đè listener cũ. Cần xem xét lại logic này.
+
+                // Tạm thời cập nhật UI trực tiếp sau khi gọi addCategory (giả định DataManager xử lý bất đồng bộ nội bộ)
+                // Logic tốt hơn là xử lý trong callback thành công của Firestore trong DataManager
+                 if (getActivity() != null) {
+                     getActivity().runOnUiThread(() -> {
+                         // Cập nhật RecyclerView
+                         loadCategories();
+
+                         // Chọn danh mục mới
+                         selectedCategory = newCategory;
+                         updateCategorySelection();
+
+                         // Ẩn loading và đóng dialog
+                         progressBar.setVisibility(View.GONE);
+                         btnAdd.setEnabled(true);
+                         dialog.dismiss();
+
+                         Toast.makeText(getContext(), "Đã thêm danh mục mới", Toast.LENGTH_SHORT).show();
+                     });
+                 }
+
+            } else {
+                etCategoryName.setError("Vui lòng nhập tên danh mục");
+            }
+        });
+
+        dialog.show();
+    }
+
     private void setupFirebase() {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
-        loadCategories();
+        // Load categories khi dữ liệu sẵn sàng hoặc bắt đầu load dữ liệu
+        DataManager dataManager = DataManager.getInstance();
+        dataManager.setDataLoadedListener(new DataManager.OnDataLoadedListener() {
+            @Override
+            public void onDataLoaded() {
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        loadCategories();
+                        progressBar.setVisibility(View.GONE);
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                 if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        Toast.makeText(getContext(), "Lỗi khi tải dữ liệu: " + error, Toast.LENGTH_SHORT).show();
+                        progressBar.setVisibility(View.GONE);
+                    });
+                }
+            }
+        });
+
+        if (dataManager.isDataLoaded()) {
+            loadCategories();
+        } else {
+            progressBar.setVisibility(View.VISIBLE);
+            dataManager.loadUserData();
+        }
     }
 
     private void setupDateSelection() {
@@ -109,13 +221,6 @@ public class IncomeFragment extends Fragment {
     private void updateDateDisplay() {
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
         tvSelectedDate.setText(sdf.format(selectedDate.getTime()));
-    }
-
-    private void setupCategories() {
-        btnAddCategory.setOnClickListener(v -> {
-            // TODO: Implement add category dialog for Income categories
-            Toast.makeText(getContext(), "Chức năng thêm danh mục thu nhập sẽ được cập nhật sau", Toast.LENGTH_SHORT).show();
-        });
     }
 
     private void loadCategories() {

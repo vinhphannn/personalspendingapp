@@ -10,9 +10,12 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.personalspendingapp.R;
 import com.example.personalspendingapp.data.DataManager;
+import com.example.personalspendingapp.adapters.CategoryDetailAdapter;
 
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -43,6 +46,8 @@ public class ReportFragment extends Fragment {
     private ImageView btnPreviousPeriod;
     private ImageView btnNextPeriod;
     private PieChart pieChartReport;
+    private RecyclerView rvCategoryDetails;
+    private CategoryDetailAdapter categoryDetailAdapter;
     // TODO: Add RecyclerView
 
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
@@ -74,6 +79,8 @@ public class ReportFragment extends Fragment {
         btnPreviousPeriod = view.findViewById(R.id.btnPreviousPeriod);
         btnNextPeriod = view.findViewById(R.id.btnNextPeriod);
         pieChartReport = view.findViewById(R.id.pieChartReport);
+        rvCategoryDetails = view.findViewById(R.id.rvCategoryDetails);
+        rvCategoryDetails.setLayoutManager(new LinearLayoutManager(getContext()));
         // TODO: Initialize RecyclerView
     }
 
@@ -217,56 +224,55 @@ public class ReportFragment extends Fragment {
 
     private void updateChartAndDetailedList(List<com.example.personalspendingapp.models.Transaction> transactions) {
         String selectedTab = tabLayoutReport.getTabAt(tabLayoutReport.getSelectedTabPosition()).getText().toString();
+        boolean isExpense = "Chi tiêu".equals(selectedTab);
 
-        if ("Chi tiêu".equals(selectedTab)) {
-            pieChartReport.setVisibility(View.VISIBLE); // Show chart for Expense tab
-            // Filter for expenses
-            List<com.example.personalspendingapp.models.Transaction> expenseTransactions = transactions.stream()
-                    .filter(t -> "expense".equals(t.getType()))
-                    .collect(java.util.stream.Collectors.toList());
+        // Hiển thị biểu đồ và danh sách cho cả hai tab
+        pieChartReport.setVisibility(View.VISIBLE);
+        rvCategoryDetails.setVisibility(View.VISIBLE);
 
-            // Calculate total expense by category
-            Map<String, Double> expenseByCategory = new HashMap<>();
-            for (com.example.personalspendingapp.models.Transaction transaction : expenseTransactions) {
-                String categoryId = transaction.getCategoryId();
-                String categoryName = DataManager.getInstance().getCategoryById(categoryId, transaction.getType()).getName(); // Assuming getCategoryById returns Category object with getName()
-                double currentTotal = expenseByCategory.getOrDefault(categoryName, 0.0);
-                expenseByCategory.put(categoryName, currentTotal + transaction.getAmount());
-            }
+        // Lọc giao dịch theo loại
+        List<com.example.personalspendingapp.models.Transaction> filteredTransactions = transactions.stream()
+                .filter(t -> (isExpense ? "expense" : "income").equals(t.getType()))
+                .collect(java.util.stream.Collectors.toList());
 
-            // Create PieEntries from category totals
-            List<PieEntry> entries = new ArrayList<>();
-            for (Map.Entry<String, Double> entry : expenseByCategory.entrySet()) {
-                entries.add(new PieEntry(entry.getValue().floatValue(), entry.getKey()));
-            }
-
-            // Create PieDataSet
-            PieDataSet dataSet = new PieDataSet(entries, "Expense Categories");
-            dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
-            dataSet.setValueTextColor(android.R.color.black);
-            dataSet.setValueTextSize(12f);
-
-            // Create PieData
-            PieData data = new PieData(dataSet);
-            pieChartReport.setData(data);
-
-            // Configure PieChart
-            pieChartReport.getDescription().setEnabled(false);
-            pieChartReport.animateY(1000); // Add animation
-            pieChartReport.invalidate(); // Refresh chart
-
-            // TODO: Update Detailed List RecyclerView with expenseTransactions
-
-        } else if ("Thu nhập".equals(selectedTab)) {
-            pieChartReport.setVisibility(View.GONE); // Hide chart for Income tab
-            // Filter for income
-            List<com.example.personalspendingapp.models.Transaction> incomeTransactions = transactions.stream()
-                    .filter(t -> "income".equals(t.getType()))
-                    .collect(java.util.stream.Collectors.toList());
-            // TODO: Process incomeTransactions for Income chart and list
-
-            // TODO: Update Detailed List RecyclerView with incomeTransactions
+        // Tính tổng theo danh mục
+        Map<String, Double> amountByCategory = new HashMap<>();
+        double totalAmount = 0;
+        for (com.example.personalspendingapp.models.Transaction transaction : filteredTransactions) {
+            String categoryId = transaction.getCategoryId();
+            String categoryName = DataManager.getInstance().getCategoryById(categoryId, transaction.getType()).getName();
+            double currentTotal = amountByCategory.getOrDefault(categoryName, 0.0);
+            double newTotal = currentTotal + transaction.getAmount();
+            amountByCategory.put(categoryName, newTotal);
+            totalAmount += transaction.getAmount();
         }
+
+        // Tạo PieEntries từ tổng theo danh mục
+        List<PieEntry> entries = new ArrayList<>();
+        for (Map.Entry<String, Double> entry : amountByCategory.entrySet()) {
+            entries.add(new PieEntry(entry.getValue().floatValue(), entry.getKey()));
+        }
+
+        // Tạo PieDataSet
+        PieDataSet dataSet = new PieDataSet(entries, isExpense ? "Chi tiêu theo danh mục" : "Thu nhập theo danh mục");
+        dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+        dataSet.setValueTextColor(android.R.color.black);
+        dataSet.setValueTextSize(12f);
+
+        // Tạo PieData
+        PieData data = new PieData(dataSet);
+        pieChartReport.setData(data);
+
+        // Cấu hình PieChart
+        pieChartReport.getDescription().setEnabled(false);
+        pieChartReport.animateY(1000);
+        pieChartReport.invalidate();
+
+        // Cập nhật RecyclerView với chi tiết danh mục
+        List<Map.Entry<String, Double>> sortedCategories = new ArrayList<>(amountByCategory.entrySet());
+        sortedCategories.sort((e1, e2) -> e2.getValue().compareTo(e1.getValue())); // Sắp xếp theo số tiền giảm dần
+        categoryDetailAdapter = new CategoryDetailAdapter(requireContext(), sortedCategories, totalAmount, ColorTemplate.MATERIAL_COLORS);
+        rvCategoryDetails.setAdapter(categoryDetailAdapter);
     }
 
     // Helper methods to get start and end dates based on currentPeriodCalendar and isMonthlyReport
