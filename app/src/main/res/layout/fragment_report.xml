@@ -210,7 +210,8 @@
             android:id="@+id/rvCategoryDetails"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:nestedScrollingEnabled="false" /> <!-- Optional: for smooth scrolling within ScrollView -->
+            android:layout_marginTop="8dp"
+            android:nestedScrollingEnabled="false"/>
 
     </LinearLayout>
 </ScrollView> 

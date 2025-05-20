@@ -1,5 +1,6 @@
 package com.example.personalspendingapp.fragments;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -24,6 +25,7 @@ import com.example.personalspendingapp.models.Category;
 import com.example.personalspendingapp.models.Expense;
 import com.example.personalspendingapp.models.Transaction;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -39,11 +41,12 @@ import java.util.UUID;
 
 public class ExpenseFragment extends Fragment {
     private static final String TAG = "ExpenseFragment";
+    private View view;
     private TextView tvSelectedDate;
     private ImageButton btnPreviousDate, btnNextDate;
     private TextInputEditText etAmount, etNote;
     private RecyclerView rvCategories;
-    private Button btnAddCategory, btnSubmit;
+    private Button btnSubmit;
     private ProgressBar progressBar;
 
     private CategoryAdapter categoryAdapter;
@@ -56,11 +59,11 @@ public class ExpenseFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_expense, container, false);
+        view = inflater.inflate(R.layout.fragment_expense, container, false);
         initViews(view);
         setupFirebase();
         setupDateSelection();
-        setupCategories();
+        setupCategoryRecyclerView();
         setupSubmitButton();
         return view;
     }
@@ -72,15 +75,22 @@ public class ExpenseFragment extends Fragment {
         etAmount = view.findViewById(R.id.etAmount);
         etNote = view.findViewById(R.id.etNote);
         rvCategories = view.findViewById(R.id.rvCategories);
-        btnAddCategory = view.findViewById(R.id.btnAddCategory);
         btnSubmit = view.findViewById(R.id.btnSubmit);
         progressBar = view.findViewById(R.id.progressBar);
 
         selectedDate = Calendar.getInstance();
         categories = new ArrayList<>();
-        categoryAdapter = new CategoryAdapter(categories, (category, position) -> {
-            selectedCategory = category;
-            categoryAdapter.setSelectedPosition(position);
+        categoryAdapter = new CategoryAdapter(categories, new CategoryAdapter.OnCategoryClickListener() {
+            @Override
+            public void onCategoryClick(Category category) {
+                selectedCategory = category;
+                updateCategorySelection();
+            }
+
+            @Override
+            public void onOtherClick() {
+                showAddCategoryDialog();
+            }
         });
         rvCategories.setLayoutManager(new GridLayoutManager(getContext(), 3));
         rvCategories.setAdapter(categoryAdapter);
@@ -146,11 +156,28 @@ public class ExpenseFragment extends Fragment {
         tvSelectedDate.setText(sdf.format(selectedDate.getTime()));
     }
 
-    private void setupCategories() {
-        btnAddCategory.setOnClickListener(v -> {
-            // TODO: Implement add category dialog
-            Toast.makeText(getContext(), "Chức năng thêm danh mục sẽ được cập nhật sau", Toast.LENGTH_SHORT).show();
+    private void setupCategoryRecyclerView() {
+        RecyclerView rvCategories = view.findViewById(R.id.rvCategories);
+        rvCategories.setLayoutManager(new GridLayoutManager(getContext(), 3));
+        
+        List<Category> categories = DataManager.getInstance().getCategoriesByType("expense");
+        categoryAdapter = new CategoryAdapter(categories, new CategoryAdapter.OnCategoryClickListener() {
+            @Override
+            public void onCategoryClick(Category category) {
+                selectedCategory = category;
+                updateCategorySelection();
+                int position = categories.indexOf(category);
+                if (position != -1) {
+                    categoryAdapter.setSelectedPosition(position);
+                }
+            }
+
+            @Override
+            public void onOtherClick() {
+                showAddCategoryDialog();
+            }
         });
+        rvCategories.setAdapter(categoryAdapter);
     }
 
     private void loadCategories() {
@@ -162,22 +189,16 @@ public class ExpenseFragment extends Fragment {
             return;
         }
 
-        Map<String, List<Category>> allCategories = dataManager.getCategories();
-        Log.d(TAG, "All categories: " + allCategories.toString());
+        List<Category> expenseCategories = dataManager.getCategoriesByType("expense");
+        Log.d(TAG, "Expense categories found: " + expenseCategories.size());
         
-        if (allCategories != null && allCategories.containsKey("expense")) {
-            List<Category> expenseCategories = allCategories.get("expense");
-            Log.d(TAG, "Expense categories found: " + expenseCategories.toString());
-            
+        if (expenseCategories != null && !expenseCategories.isEmpty()) {
             categories.clear();
-            for (Category category : expenseCategories) {
-                categories.add(category);
-                Log.d(TAG, "Added category: " + category.getName());
-            }
+            categories.addAll(expenseCategories);
             categoryAdapter.updateCategories(categories);
             Log.d(TAG, "Expense Categories loaded: " + categories.size());
         } else {
-            Log.e(TAG, "No expense categories found in: " + allCategories);
+            Log.e(TAG, "No expense categories found");
             // Không gọi loadUserData() ở đây nữa vì đã có listener
         }
     }
@@ -271,5 +292,86 @@ public class ExpenseFragment extends Fragment {
     public void setSelectedDate(Date date) {
         selectedDate.setTime(date);
         updateDateDisplay();
+    }
+
+    private void updateCategorySelection() {
+        if (selectedCategory != null) {
+            // Cập nhật UI để hiển thị danh mục đã chọn
+            TextView tvSelectedCategory = view.findViewById(R.id.tvSelectedCategory);
+            if (tvSelectedCategory != null) {
+                tvSelectedCategory.setText(selectedCategory.getName());
+            }
+        }
+    }
+
+    private void showAddCategoryDialog() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_category, null);
+        TextInputEditText etCategoryName = dialogView.findViewById(R.id.etCategoryName);
+        MaterialButton btnCancel = dialogView.findViewById(R.id.btnCancel);
+        MaterialButton btnAdd = dialogView.findViewById(R.id.btnAdd);
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setView(dialogView)
+                .create();
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnAdd.setOnClickListener(v -> {
+            String categoryName = etCategoryName.getText().toString().trim();
+            if (!categoryName.isEmpty()) {
+                // Hiển thị loading
+                progressBar.setVisibility(View.VISIBLE);
+                btnAdd.setEnabled(false);
+                
+                // Tạo danh mục mới với type cố định là expense
+                Category newCategory = new Category(
+                    "cat_expense_" + UUID.randomUUID().toString().substring(0, 8),
+                    categoryName,
+                    "❓", // Icon mặc định
+                    "expense" // Type cố định là expense
+                );
+                
+                // Thêm vào DataManager và database
+                DataManager dataManager = DataManager.getInstance();
+                dataManager.setDataLoadedListener(new DataManager.OnDataLoadedListener() {
+                    @Override
+                    public void onDataLoaded() {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                // Cập nhật RecyclerView
+                                loadCategories();
+                                
+                                // Chọn danh mục mới
+                                selectedCategory = newCategory;
+                                updateCategorySelection();
+                                
+                                // Ẩn loading và đóng dialog
+                                progressBar.setVisibility(View.GONE);
+                                btnAdd.setEnabled(true);
+                                dialog.dismiss();
+                                
+                                Toast.makeText(getContext(), "Đã thêm danh mục mới", Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                Toast.makeText(getContext(), "Lỗi khi thêm danh mục: " + error, Toast.LENGTH_SHORT).show();
+                                progressBar.setVisibility(View.GONE);
+                                btnAdd.setEnabled(true);
+                            });
+                        }
+                    }
+                });
+                
+                dataManager.addCategory(newCategory);
+            } else {
+                etCategoryName.setError("Vui lòng nhập tên danh mục");
+            }
+        });
+
+        dialog.show();
     }
 } 

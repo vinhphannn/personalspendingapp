@@ -19,12 +19,29 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
     private int selectedPosition = RecyclerView.NO_POSITION;
 
     public interface OnCategoryClickListener {
-        void onCategoryClick(Category category, int position);
+        void onCategoryClick(Category category);
+        void onOtherClick();
     }
 
     public CategoryAdapter(List<Category> categories, OnCategoryClickListener listener) {
         this.categories = categories;
         this.listener = listener;
+    }
+
+    public void updateCategories(List<Category> newCategories) {
+        this.categories = newCategories;
+        notifyDataSetChanged();
+    }
+
+    public void setSelectedPosition(int position) {
+        int oldPosition = selectedPosition;
+        selectedPosition = position;
+        if (oldPosition != RecyclerView.NO_POSITION) {
+            notifyItemChanged(oldPosition);
+        }
+        if (position != RecyclerView.NO_POSITION) {
+            notifyItemChanged(position);
+        }
     }
 
     @NonNull
@@ -37,56 +54,46 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
 
     @Override
     public void onBindViewHolder(@NonNull CategoryViewHolder holder, int position) {
+        if (position == categories.size()) {
+            // Item "Khác"
+            holder.bindOther();
+        } else {
         Category category = categories.get(position);
-        holder.bind(category, position, listener, selectedPosition);
+            holder.bind(category, position == selectedPosition);
+        }
     }
 
     @Override
     public int getItemCount() {
-        return categories.size();
+        return categories.size() + 1; // +1 for "Other" item
     }
 
-    public void updateCategories(List<Category> newCategories) {
-        this.categories = newCategories;
-        selectedPosition = RecyclerView.NO_POSITION;
-        notifyDataSetChanged();
-    }
-
-    public void setSelectedPosition(int position) {
-        int oldPosition = selectedPosition;
-        selectedPosition = position;
-        if (oldPosition != RecyclerView.NO_POSITION) {
-            notifyItemChanged(oldPosition);
-        }
-        if (selectedPosition != RecyclerView.NO_POSITION) {
-            notifyItemChanged(selectedPosition);
-        }
-    }
-
-    static class CategoryViewHolder extends RecyclerView.ViewHolder {
+    class CategoryViewHolder extends RecyclerView.ViewHolder {
         private final TextView tvCategoryName;
 
-        public CategoryViewHolder(@NonNull View itemView) {
+        CategoryViewHolder(@NonNull View itemView) {
             super(itemView);
             tvCategoryName = itemView.findViewById(R.id.tvCategoryName);
         }
 
-        public void bind(Category category, int position, OnCategoryClickListener listener, int selectedPosition) {
+        void bind(Category category, boolean isSelected) {
             tvCategoryName.setText(category.getName());
-
-            itemView.setSelected(selectedPosition == position);
-            
-            if (selectedPosition == position) {
-                tvCategoryName.setTextColor(itemView.getContext().getResources().getColor(android.R.color.white));
-            } else {
-                tvCategoryName.setTextColor(itemView.getContext().getResources().getColor(android.R.color.black));
-            }
-
+            tvCategoryName.setBackgroundResource(isSelected ? R.drawable.bg_category_selected : R.drawable.bg_category_normal);
+            tvCategoryName.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
             itemView.setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onCategoryClick(category, position);
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION) {
+                    setSelectedPosition(position);
+                    listener.onCategoryClick(category);
                 }
             });
+        }
+
+        void bindOther() {
+            tvCategoryName.setText("Khác");
+            tvCategoryName.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_add, 0);
+            tvCategoryName.setBackgroundResource(R.drawable.bg_category_normal);
+            itemView.setOnClickListener(v -> listener.onOtherClick());
         }
     }
 }

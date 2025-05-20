@@ -72,14 +72,6 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"/>
 
-        <Button
-            android:id="@+id/btnAddCategory"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="16dp"
-            android:text="Thêm danh mục mới"/>
-
         <!-- Note Input -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
