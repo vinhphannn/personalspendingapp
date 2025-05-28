@@ -21,6 +21,7 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -36,13 +37,17 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
+import com.example.personalspendingapp.utils.NotificationHelper;
+import com.example.personalspendingapp.models.Transaction;
+import com.example.personalspendingapp.models.Category;
+
+import java.util.Date;
 
 public class OtherFragment extends Fragment {
     private static final String TAG = "OtherFragment";
     private View view;
-    private ImageView imgProfilePicture;
+    private ImageView ivProfileAvatar;
     private TextView tvProfileName, tvProfileDescription;
-    private MaterialButton btnLogout;
     private MaterialCardView cardProfile;
 
     private FirebaseAuth mAuth;
@@ -51,6 +56,12 @@ public class OtherFragment extends Fragment {
     // Danh sách tiền tệ và ngôn ngữ
     private final String[] currencies = {"VND", "USD", "EUR", "GBP", "JPY", "KRW", "CNY"};
     private final String[] languages = {"Tiếng Việt", "English", "中文", "日本語", "한국어"};
+
+    private NotificationHelper notificationHelper;
+
+    public OtherFragment() {
+        // Required empty public constructor
+    }
 
     @Nullable
     @Override
@@ -62,23 +73,68 @@ public class OtherFragment extends Fragment {
         setupListeners();
         loadUserProfile();
         
+        notificationHelper = new NotificationHelper(getContext());
+
+        // Ánh xạ các nút test thông báo
+        Button btnTestDailyReminder = view.findViewById(R.id.btnTestDailyReminder);
+        Button btnTestBudgetExceeded = view.findViewById(R.id.btnTestBudgetExceeded);
+        Button btnTestUnusualExpense = view.findViewById(R.id.btnTestUnusualExpense);
+        Button btnTestWeeklySummary = view.findViewById(R.id.btnTestWeeklySummary);
+        Button btnTestNewIncome = view.findViewById(R.id.btnTestNewIncome);
+
+        // Thiết lập listener cho các nút test thông báo
+        btnTestDailyReminder.setOnClickListener(v -> {
+            notificationHelper.showDailyReminder();
+            Toast.makeText(getContext(), "Đã gửi thông báo nhắc nhở hàng ngày", Toast.LENGTH_SHORT).show();
+        });
+
+        btnTestBudgetExceeded.setOnClickListener(v -> {
+            // Sử dụng giá trị mẫu cho test
+            notificationHelper.showBudgetExceededNotification(8000000, 10000000);
+            Toast.makeText(getContext(), "Đã gửi thông báo cảnh báo vượt ngân sách", Toast.LENGTH_SHORT).show();
+        });
+
+        btnTestUnusualExpense.setOnClickListener(v -> {
+            // Sử dụng dữ liệu mẫu cho test
+            Transaction testTransaction = new Transaction();
+            testTransaction.setAmount(5000000);
+            testTransaction.setType("expense");
+            testTransaction.setCategoryId("food"); // Cần đảm bảo categoryId này tồn tại hoặc xử lý null trong NotificationHelper
+            testTransaction.setNote("Ăn uống nhà hàng sang trọng");
+            testTransaction.setDate(new Date());
+            notificationHelper.showUnusualExpenseNotification(testTransaction);
+             Toast.makeText(getContext(), "Đã gửi thông báo chi tiêu bất thường", Toast.LENGTH_SHORT).show();
+        });
+
+        btnTestWeeklySummary.setOnClickListener(v -> {
+            notificationHelper.showWeeklySummaryNotification();
+             Toast.makeText(getContext(), "Đã gửi thông báo tổng kết tuần", Toast.LENGTH_SHORT).show();
+        });
+
+        btnTestNewIncome.setOnClickListener(v -> {
+            // Sử dụng dữ liệu mẫu cho test
+            Transaction incomeTransaction = new Transaction();
+            incomeTransaction.setAmount(15000000);
+            incomeTransaction.setType("income");
+            incomeTransaction.setCategoryId("salary"); // Cần đảm bảo categoryId này tồn tại hoặc xử lý null trong NotificationHelper
+            incomeTransaction.setNote("Lương tháng 13");
+            incomeTransaction.setDate(new Date());
+            notificationHelper.showNewIncomeNotification(incomeTransaction);
+             Toast.makeText(getContext(), "Đã gửi thông báo thu nhập mới", Toast.LENGTH_SHORT).show();
+        });
+
         return view;
     }
 
     private void initViews(View view) {
         Log.d(TAG, "initViews: start");
-        imgProfilePicture = view.findViewById(R.id.imgProfilePicture);
+        ivProfileAvatar = view.findViewById(R.id.ivProfileAvatar);
         tvProfileName = view.findViewById(R.id.tvProfileName);
         tvProfileDescription = view.findViewById(R.id.tvProfileDescription);
         if (tvProfileDescription == null) {
             Log.e(TAG, "initViews: tvProfileDescription not found with ID R.id.tvProfileDescription");
         }
 
-        btnLogout = view.findViewById(R.id.btnLogout);
-        if (btnLogout == null) {
-            Log.e(TAG, "initViews: btnLogout not found with ID R.id.btnLogout");
-        }
-        
         cardProfile = view.findViewById(R.id.cardProfile);
         if (cardProfile == null) {
             Log.e(TAG, "initViews: cardProfile not found with ID R.id.cardProfile");
@@ -98,16 +154,6 @@ public class OtherFragment extends Fragment {
     }
 
     private void setupListeners() {
-        btnLogout.setOnClickListener(v -> {
-            mAuth.signOut();
-            Intent intent = new Intent(getActivity(), LoginActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            if (getActivity() != null) {
-                getActivity().finish();
-            }
-        });
-
         dataManager.setDataLoadedListener(new DataManager.OnDataLoadedListener() {
             @Override
             public void onDataLoaded() {
@@ -146,7 +192,7 @@ public class OtherFragment extends Fragment {
 
         // Generate and set the initial drawable
         Drawable initialDrawable = generateInitialDrawable(name);
-        imgProfilePicture.setImageDrawable(initialDrawable);
+        ivProfileAvatar.setImageDrawable(initialDrawable);
 
         Log.d(TAG, "loadUserProfile: Profile data loaded or default set");
     }

@@ -22,7 +22,6 @@ import com.example.personalspendingapp.R;
 import com.example.personalspendingapp.adapters.CategoryAdapter;
 import com.example.personalspendingapp.data.DataManager;
 import com.example.personalspendingapp.models.Category;
-import com.example.personalspendingapp.models.Expense;
 import com.example.personalspendingapp.models.Transaction;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.button.MaterialButton;

@@ -10,6 +10,7 @@ public class UserData {
     private UserProfile profile;
     private Map<String, List<Category>> categories;
     private List<Transaction> transactions;
+    private double budget;
 
     public UserData() {
         // Required empty constructor for Firestore
@@ -21,6 +22,7 @@ public class UserData {
         this.categories.put("income", new ArrayList<>());
         this.categories.put("expense", new ArrayList<>());
         this.transactions = new ArrayList<>();
+        this.budget = 0.0;
     }
 
     // Getters and Setters
@@ -35,6 +37,9 @@ public class UserData {
 
     public List<Transaction> getTransactions() { return transactions; }
     public void setTransactions(List<Transaction> transactions) { this.transactions = transactions; }
+
+    public double getBudget() { return budget; }
+    public void setBudget(double budget) { this.budget = budget; }
 
     // Helper methods
     public void addTransaction(Transaction transaction) {

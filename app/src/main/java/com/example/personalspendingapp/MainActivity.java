@@ -13,6 +13,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -40,6 +42,17 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 import java.util.Date;
+import java.util.Calendar;
+import java.util.concurrent.TimeUnit;
+
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
+
+import com.example.personalspendingapp.workers.DailyReminderWorker;
+import com.example.personalspendingapp.workers.WeeklySummaryWorker;
+import com.example.personalspendingapp.models.Transaction;
+
+import com.example.personalspendingapp.utils.NotificationHelper;
 
 public class MainActivity extends AppCompatActivity implements CalendarFragment.OnDaySelectedListener {
     private static final String TAG = "MainActivity";
@@ -61,6 +74,8 @@ public class MainActivity extends AppCompatActivity implements CalendarFragment.
 
     private Date selectedDateForInputTabs;
 
+    private NotificationHelper notificationHelper;
+
     // Interface for callback to the hosting Activity
     public interface OnDaySelectedListener {
         void onDaySelected(Date selectedDate);
@@ -72,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements CalendarFragment.
         setContentView(R.layout.activity_main);
 
         mAuth = FirebaseAuth.getInstance();
+        notificationHelper = new NotificationHelper(this);
 
         // Initialize views
         viewPager = findViewById(R.id.viewPager);
@@ -80,6 +96,12 @@ public class MainActivity extends AppCompatActivity implements CalendarFragment.
         tvTabExpense = findViewById(R.id.tvTabExpense);
         tvTabIncome = findViewById(R.id.tvTabIncome);
         fragmentManager = getSupportFragmentManager();
+
+        // Lên lịch thông báo hàng ngày lúc 9h tối
+        scheduleDailyReminder();
+        
+        // Lên lịch thông báo tổng kết tuần vào Chủ nhật
+        scheduleWeeklySummary();
 
         // Setup ViewPager2
         setupViewPager();
@@ -108,6 +130,9 @@ public class MainActivity extends AppCompatActivity implements CalendarFragment.
                     } catch (Exception e) {
                         Log.e(TAG, "Error in onDataLoaded", e);
                         Toast.makeText(MainActivity.this, "Lỗi khi khởi tạo giao diện", Toast.LENGTH_SHORT).show();
+                    }catch (NoClassDefFoundError e) {
+                         Log.e(TAG, "NoClassDefFoundError in onDataLoaded", e);
+                         Toast.makeText(MainActivity.this, "Lỗi tải class: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
             }
@@ -201,7 +226,7 @@ public class MainActivity extends AppCompatActivity implements CalendarFragment.
 
                  // When switching to Input tabs (Expense or Income) after selecting date from Calendar,
                  // ensure the selected date is set on the fragment
-                 if (selectedDateForInputTabs != null) { 
+                 if (selectedDateForInputTabs != null) {
                      // We need to get the currently active fragment from the ViewPager
                      // Use findFragmentByTag with ViewPager2 fragment tag format: "f" + adapter.getItemId(position)
                      String fragmentTag = "f" + tabPagerAdapter.getItemId(position);
@@ -329,6 +354,69 @@ public class MainActivity extends AppCompatActivity implements CalendarFragment.
         } catch (Exception e) {
             Log.e(TAG, "Error setting up UI", e);
             throw e; // Ném lỗi để xử lý ở trên
+        } catch (NoClassDefFoundError e) {
+            Log.e(TAG, "NoClassDefFoundError setting up UI", e);
+            Toast.makeText(this, "Lỗi tải class: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void scheduleDailyReminder() {
+        // Tạo thời gian 9h tối
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 21);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        
+        // Nếu thời gian đã qua, lên lịch cho ngày hôm sau
+        if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
+            calendar.add(Calendar.DAY_OF_YEAR, 1);
+        }
+        
+        // Tạo WorkRequest
+        PeriodicWorkRequest reminderWork = 
+            new PeriodicWorkRequest.Builder(DailyReminderWorker.class, 24, TimeUnit.HOURS)
+                .setInitialDelay(calendar.getTimeInMillis() - System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+                .build();
+                
+        // Lên lịch
+        WorkManager.getInstance(this).enqueue(reminderWork);
+    }
+
+    private void scheduleWeeklySummary() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+        calendar.set(Calendar.HOUR_OF_DAY, 20);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        
+        // Nếu thời gian đã qua, lên lịch cho tuần sau
+        if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
+            calendar.add(Calendar.WEEK_OF_YEAR, 1);
+        }
+        
+        // Tạo WorkRequest
+        PeriodicWorkRequest weeklyWork = 
+            new PeriodicWorkRequest.Builder(WeeklySummaryWorker.class, 7, TimeUnit.DAYS)
+                .setInitialDelay(calendar.getTimeInMillis() - System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+                .build();
+                
+        // Lên lịch
+        WorkManager.getInstance(this).enqueue(weeklyWork);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Đảm bảo dừng spam khi Activity bị hủy (nếu có)
+        // stopSpamming();
+    }
+
+    // Phương thức để hiển thị thông báo khi có giao dịch mới
+    public void showTransactionNotification(Transaction transaction) {
+        if (transaction.getType().equals("income")) {
+            notificationHelper.showNewIncomeNotification(transaction);
+        } else if (transaction.getAmount() > 1000000) { // Nếu chi tiêu lớn hơn 1 triệu
+            notificationHelper.showUnusualExpenseNotification(transaction);
         }
     }
 }
