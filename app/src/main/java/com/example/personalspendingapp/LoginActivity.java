@@ -4,15 +4,16 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import com.google.android.material.textfield.TextInputEditText;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.auth.AuthResult;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -20,22 +21,26 @@ public class LoginActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private TextInputEditText emailEditText;
     private TextInputEditText passwordEditText;
+    private Button loginButton;
+    private Button signUpButton;
+    private TextView forgotPasswordText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        // Khởi tạo Firebase Auth
+        // Initialize Firebase Auth
         mAuth = FirebaseAuth.getInstance();
 
-        // Ánh xạ các view
+        // Map views
         emailEditText = findViewById(R.id.emailEditText);
         passwordEditText = findViewById(R.id.passwordEditText);
-        Button loginButton = findViewById(R.id.loginButton);
-        Button signUpButton = findViewById(R.id.signUpButton); // Di chuyển vào đây
+        loginButton = findViewById(R.id.loginButton);
+        signUpButton = findViewById(R.id.signUpButton);
+        forgotPasswordText = findViewById(R.id.forgotPasswordText);
 
-        // Xử lý sự kiện nhấn nút Login
+        // Handle Login Button Click
         loginButton.setOnClickListener(v -> {
             String email = emailEditText.getText().toString().trim();
             String password = passwordEditText.getText().toString().trim();
@@ -49,19 +54,34 @@ public class LoginActivity extends AppCompatActivity {
             signIn(email, password);
         });
 
-        // Xử lý sự kiện nhấn nút Sign Up
+        // Handle Sign Up Button Click
         signUpButton.setOnClickListener(v -> {
-            startActivity(new Intent(this, SignUpActivity.class));
+            Intent intent = new Intent(LoginActivity.this, SignUpActivity.class);
+            startActivity(intent);
+        });
+
+        // Handle Forgot Password Click
+        forgotPasswordText.setOnClickListener(v -> {
+            String email = emailEditText.getText().toString().trim();
+            if (email.isEmpty()) {
+                Toast.makeText(LoginActivity.this, "Vui lòng nhập email của bạn",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+            resetPassword(email);
         });
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        // Kiểm tra nếu người dùng đã đăng nhập
+        // Check if user is signed in (non-null) and update UI accordingly.
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser != null) {
-            updateUI(currentUser);
+            // User is signed in, navigate to MainActivity
+            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+            startActivity(intent);
+            finish(); // Close LoginActivity so user cannot go back to it by pressing back button
         }
     }
 
@@ -71,14 +91,14 @@ public class LoginActivity extends AppCompatActivity {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
-                            // Đăng nhập thành công
+                            // Sign in success
                             Log.d(TAG, "signInWithEmail:success");
                             FirebaseUser user = mAuth.getCurrentUser();
                             updateUI(user);
                         } else {
-                            // Đăng nhập thất bại
+                            // If sign in fails, display a message to the user.
                             Log.w(TAG, "signInWithEmail:failure", task.getException());
-                            Toast.makeText(LoginActivity.this, "Authentication failed.",
+                            Toast.makeText(LoginActivity.this, "Authentication failed: " + task.getException().getMessage(),
                                     Toast.LENGTH_SHORT).show();
                             updateUI(null);
                         }
@@ -86,16 +106,34 @@ public class LoginActivity extends AppCompatActivity {
                 });
     }
 
+    private void resetPassword(String email) {
+        mAuth.sendPasswordResetEmail(email)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if (task.isSuccessful()) {
+                            Log.d(TAG, "Password reset email sent.");
+                            Toast.makeText(LoginActivity.this, 
+                                "Đã gửi email đặt lại mật khẩu. Vui lòng kiểm tra hộp thư của bạn.",
+                                Toast.LENGTH_LONG).show();
+                        } else {
+                            Log.w(TAG, "Password reset failed", task.getException());
+                            Toast.makeText(LoginActivity.this,
+                                "Không thể gửi email đặt lại mật khẩu: " + task.getException().getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+    }
+
     private void updateUI(FirebaseUser user) {
         if (user != null) {
-            Toast.makeText(this, "Login Successful: " + user.getEmail(),
-                    Toast.LENGTH_SHORT).show();
-            // Chuyển hướng đến MainActivity
+            // User is signed in, navigate to MainActivity
             Intent intent = new Intent(LoginActivity.this, MainActivity.class);
             startActivity(intent);
-            finish();
+            finish(); // Close LoginActivity
         } else {
-            Toast.makeText(this, "Login Failed", Toast.LENGTH_SHORT).show();
+           // User is signed out or authentication failed, nothing to do here as error message is already shown
         }
     }
 }
