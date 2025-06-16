@@ -273,6 +273,15 @@ public class DataManager {
         }
     }
 
+    private void syncCategoriesFromUserData() {
+        categories.clear();
+        if (userData != null && userData.getCategories() != null) {
+            for (List<Category> typeCategories : userData.getCategories().values()) {
+                categories.addAll(typeCategories);
+            }
+        }
+    }
+
     public void addCategory(Category category) {
         Log.d(TAG, "Adding new category: " + category.getName());
         
@@ -296,7 +305,7 @@ public class DataManager {
                 // Khởi tạo mảng expense và income nếu chưa có
                 userCategories.put("expense", new ArrayList<>());
                 userCategories.put("income", new ArrayList<>());
-                userData.setCategories(userCategories); // Cập nhật userData local
+                userData.setCategories(userCategories);
             }
 
             // Lấy danh sách categories theo type
@@ -304,7 +313,6 @@ public class DataManager {
             if (typeCategories == null) {
                 typeCategories = new ArrayList<>();
                 userCategories.put(category.getType(), typeCategories);
-                 userData.setCategories(userCategories); // Cập nhật userData local
             }
 
             // Thêm category mới vào danh sách local
@@ -315,6 +323,8 @@ public class DataManager {
                 .update("categories." + category.getType(), FieldValue.arrayUnion(category))
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "Category added successfully to database");
+                    syncCategoriesFromUserData(); // Đồng bộ lại danh sách categories
+                    notifyDataChanged();
                     if (dataLoadedListener != null) {
                         dataLoadedListener.onDataLoaded();
                     }
@@ -331,6 +341,47 @@ public class DataManager {
                 });
         } else {
             Log.e(TAG, "Cannot add category: userData is null");
+        }
+    }
+
+    public void deleteCategory(Category category) {
+        Log.d(TAG, "Deleting category: " + category.getName());
+        
+        FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser == null) {
+            Log.e(TAG, "Cannot delete category: user is not logged in");
+            return;
+        }
+
+        String userId = currentUser.getUid();
+        
+        if (userData != null && userData.getCategories() != null) {
+            List<Category> categoriesByType = userData.getCategories().get(category.getType());
+            if (categoriesByType != null) {
+                categoriesByType.remove(category);
+                
+                // Xóa khỏi Firestore
+                db.collection("users").document(userId)
+                    .update("categories." + category.getType(), FieldValue.arrayRemove(category))
+                    .addOnSuccessListener(aVoid -> {
+                        Log.d(TAG, "Category deleted successfully from database");
+                        syncCategoriesFromUserData(); // Đồng bộ lại danh sách categories
+                        notifyDataChanged();
+                        if (dataLoadedListener != null) {
+                            dataLoadedListener.onDataLoaded();
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Error deleting category from database", e);
+                        // Rollback local changes
+                        categoriesByType.add(category);
+                        // Tải lại dữ liệu từ database để đồng bộ
+                        loadUserData();
+                        if (dataLoadedListener != null) {
+                            dataLoadedListener.onError(e.getMessage());
+                        }
+                    });
+            }
         }
     }
 

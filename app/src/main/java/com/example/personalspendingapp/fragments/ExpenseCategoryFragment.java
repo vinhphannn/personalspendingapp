@@ -122,8 +122,7 @@ public class ExpenseCategoryFragment extends Fragment implements ManageCategoryA
     private void addCategory(String name) {
         String id = UUID.randomUUID().toString();
         Category newCategory = new Category(id, name, "", "expense"); // icon is empty
-        dataManager.addCategory(newCategory);
-        dataManager.saveUserData();
+        DataManager.getInstance().addCategory(newCategory);
         Toast.makeText(getContext(), "Đã thêm danh mục chi tiêu", Toast.LENGTH_SHORT).show();
         // Refresh categories
         loadCategories();
@@ -139,15 +138,9 @@ public class ExpenseCategoryFragment extends Fragment implements ManageCategoryA
 
     @Override
     public void onDeleteCategory(Category category) {
-        if (dataManager.getUserData() != null && dataManager.getUserData().getCategories() != null) {
-            List<Category> categoriesByType = dataManager.getUserData().getCategories().get(category.getType());
-            if (categoriesByType != null) {
-                categoriesByType.remove(category);
-                dataManager.saveUserData();
-                Toast.makeText(getContext(), "Đã xóa danh mục", Toast.LENGTH_SHORT).show();
-                // Refresh categories
-                loadCategories();
-            }
-        }
+        DataManager.getInstance().deleteCategory(category);
+        Toast.makeText(getContext(), "Đã xóa danh mục", Toast.LENGTH_SHORT).show();
+        // Refresh categories
+        loadCategories();
     }
 } 

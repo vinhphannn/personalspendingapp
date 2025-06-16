@@ -20,6 +20,7 @@ import com.example.personalspendingapp.models.Category;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -122,8 +123,7 @@ public class IncomeCategoryFragment extends Fragment implements ManageCategoryAd
     private void addCategory(String name) {
         String id = UUID.randomUUID().toString();
         Category newCategory = new Category(id, name, "", "income"); // icon is empty
-        dataManager.addCategory(newCategory);
-        dataManager.saveUserData();
+        DataManager.getInstance().addCategory(newCategory);
         Toast.makeText(getContext(), "Đã thêm danh mục thu nhập", Toast.LENGTH_SHORT).show();
         // Refresh categories
         loadCategories();
@@ -139,15 +139,9 @@ public class IncomeCategoryFragment extends Fragment implements ManageCategoryAd
 
     @Override
     public void onDeleteCategory(Category category) {
-        if (dataManager.getUserData() != null && dataManager.getUserData().getCategories() != null) {
-            List<Category> categoriesByType = dataManager.getUserData().getCategories().get(category.getType());
-            if (categoriesByType != null) {
-                categoriesByType.remove(category);
-                dataManager.saveUserData();
-                Toast.makeText(getContext(), "Đã xóa danh mục", Toast.LENGTH_SHORT).show();
-                // Refresh categories
-                loadCategories();
-            }
-        }
+        DataManager.getInstance().deleteCategory(category);
+        Toast.makeText(getContext(), "Đã xóa danh mục", Toast.LENGTH_SHORT).show();
+        // Refresh categories
+        loadCategories();
     }
 } 

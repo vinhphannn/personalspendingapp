@@ -82,7 +82,7 @@ public class ReportExporter {
             // Tạo tên file với timestamp
             String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
             fileName = "Financial_Report_" + timestamp + ".pdf";
-            File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName);
+            File file = new File(context.getCacheDir(), fileName);
 
             // Khởi tạo document
             document = new Document(PageSize.A4);

@@ -1,8 +1,12 @@
 package com.example.personalspendingapp.fragments;
 
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +20,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -26,9 +31,13 @@ import com.example.personalspendingapp.models.Transaction;
 import com.example.personalspendingapp.models.UserData;
 import com.example.personalspendingapp.models.UserProfile;
 import com.example.personalspendingapp.utils.NotificationHelper;
+import com.example.personalspendingapp.utils.ReportExporter;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Date;
 
 public class OtherFragment extends Fragment {
@@ -47,6 +56,7 @@ public class OtherFragment extends Fragment {
     private NotificationHelper notificationHelper;
     private TextView tvProfileName;
     private TextView tvProfileEmail;
+    private File tempReportFile;
 
     @Nullable
     @Override
@@ -195,32 +205,55 @@ public class OtherFragment extends Fragment {
 
     private void showChangePasswordDialog() {
         Dialog dialog = new Dialog(requireContext());
-            View dialogView = getLayoutInflater().inflate(R.layout.dialog_change_password, null);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_change_password, null);
         dialog.setContentView(dialogView);
         dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 
-            TextInputEditText etCurrentPassword = dialogView.findViewById(R.id.etCurrentPassword);
-            TextInputEditText etNewPassword = dialogView.findViewById(R.id.etNewPassword);
-            TextInputEditText etConfirmPassword = dialogView.findViewById(R.id.etConfirmPassword);
+        TextInputEditText etCurrentPassword = dialogView.findViewById(R.id.etCurrentPassword);
+        TextInputEditText etNewPassword = dialogView.findViewById(R.id.etNewPassword);
+        TextInputEditText etConfirmPassword = dialogView.findViewById(R.id.etConfirmPassword);
 
         dialogView.findViewById(R.id.btnSave).setOnClickListener(v -> {
             String currentPassword = etCurrentPassword.getText().toString();
             String newPassword = etNewPassword.getText().toString();
             String confirmPassword = etConfirmPassword.getText().toString();
 
-                        if (currentPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
+            if (currentPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
                 Toast.makeText(requireContext(), "Vui lòng điền đầy đủ thông tin", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
+                return;
+            }
 
-                        if (!newPassword.equals(confirmPassword)) {
+            if (!newPassword.equals(confirmPassword)) {
                 Toast.makeText(requireContext(), "Mật khẩu mới không khớp", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
+                return;
+            }
 
-            // TODO: Implement password change logic
-            Toast.makeText(requireContext(), "Đổi mật khẩu thành công", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
+            // Đổi mật khẩu thực tế với Firebase
+            com.google.firebase.auth.FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+            if (user == null || user.getEmail() == null) {
+                Toast.makeText(requireContext(), "Không xác định được người dùng", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            com.google.firebase.auth.AuthCredential credential =
+                    com.google.firebase.auth.EmailAuthProvider.getCredential(user.getEmail(), currentPassword);
+
+            user.reauthenticate(credential)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        user.updatePassword(newPassword)
+                            .addOnCompleteListener(updateTask -> {
+                                if (updateTask.isSuccessful()) {
+                                    Toast.makeText(requireContext(), "Đổi mật khẩu thành công", Toast.LENGTH_SHORT).show();
+                                    dialog.dismiss();
+                                } else {
+                                    Toast.makeText(requireContext(), "Đổi mật khẩu thất bại: " + updateTask.getException().getMessage(), Toast.LENGTH_LONG).show();
+                                }
+                            });
+                    } else {
+                        Toast.makeText(requireContext(), "Mật khẩu hiện tại không đúng!", Toast.LENGTH_SHORT).show();
+                    }
+                });
         });
 
         dialogView.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
@@ -294,14 +327,83 @@ public class OtherFragment extends Fragment {
         dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 
         dialog.findViewById(R.id.btnExport).setOnClickListener(v -> {
-            // TODO: Implement export report logic
-            Toast.makeText(requireContext(), "Đang xuất báo cáo...", Toast.LENGTH_SHORT).show();
+            saveReportToDevice();
             dialog.dismiss();
         });
 
         dialog.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
-
         dialog.show();
+    }
+
+    private void saveReportToDevice() {
+        ProgressDialog progressDialog = new ProgressDialog(requireContext());
+        progressDialog.setMessage("Đang tạo báo cáo...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        new Thread(() -> {
+            ReportExporter exporter = new ReportExporter(requireContext());
+            tempReportFile = exporter.exportFinancialReport();
+            requireActivity().runOnUiThread(() -> {
+                progressDialog.dismiss();
+                if (tempReportFile != null) {
+                    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType("application/pdf");
+                    intent.putExtra(Intent.EXTRA_TITLE, tempReportFile.getName());
+                    try {
+                        startActivityForResult(intent, 1);
+                    } catch (Exception e) {
+                        Toast.makeText(requireContext(), "Không tìm thấy ứng dụng quản lý file", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(requireContext(), "Có lỗi xảy ra khi xuất báo cáo", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }).start();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1 && resultCode == android.app.Activity.RESULT_OK && data != null) {
+            try {
+                Uri uri = data.getData();
+                if (uri != null && tempReportFile != null) {
+                    ProgressDialog progressDialog = new ProgressDialog(requireContext());
+                    progressDialog.setMessage("Đang lưu báo cáo...");
+                    progressDialog.setCancelable(false);
+                    progressDialog.show();
+
+                    new Thread(() -> {
+                        try (InputStream in = new java.io.FileInputStream(tempReportFile);
+                             OutputStream out = requireContext().getContentResolver().openOutputStream(uri)) {
+                            if (out != null) {
+                                byte[] buffer = new byte[1024];
+                                int read;
+                                while ((read = in.read(buffer)) != -1) {
+                                    out.write(buffer, 0, read);
+                                }
+                                requireActivity().runOnUiThread(() -> {
+                                    progressDialog.dismiss();
+                                    Toast.makeText(requireContext(), "Đã lưu báo cáo thành công", Toast.LENGTH_SHORT).show();
+                                });
+                            }
+                            // Xóa file tạm sau khi đã sao chép xong
+                            tempReportFile.delete();
+                            tempReportFile = null;
+                        } catch (Exception e) {
+                            requireActivity().runOnUiThread(() -> {
+                                progressDialog.dismiss();
+                                Toast.makeText(requireContext(), "Có lỗi xảy ra khi lưu báo cáo: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }).start();
+                }
+            } catch (Exception e) {
+                Toast.makeText(requireContext(), "Có lỗi xảy ra: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private void showNotificationSettingsDialog() {

@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class CalendarFragment extends Fragment implements CalendarDayAdapter.OnDayDoubleClickListener {
+public class CalendarFragment extends Fragment implements CalendarDayAdapter.OnDayDoubleClickListener, CalendarDayAdapter.OnDayLongClickListener {
 
     private static final String TAG = "CalendarFragment";
 
@@ -65,7 +65,56 @@ public class CalendarFragment extends Fragment implements CalendarDayAdapter.OnD
 
     private Category selectedCategory;
     private CalendarDay selectedDay;
-
+    private void showTransactionsOfDay(Date date) {
+        // Lấy danh sách giao dịch của ngày đó
+        List<Transaction> allTransactions = DataManager.getInstance().getUserData().getTransactions();
+        List<Transaction> transactionsOfDay = new ArrayList<>();
+        Calendar cal1 = Calendar.getInstance();
+        cal1.setTime(date);
+        for (Transaction t : allTransactions) {
+            Calendar cal2 = Calendar.getInstance();
+            cal2.setTime(t.getDate());
+            if (cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+                cal1.get(Calendar.MONTH) == cal2.get(Calendar.MONTH) &&
+                cal1.get(Calendar.DAY_OF_MONTH) == cal2.get(Calendar.DAY_OF_MONTH)) {
+                transactionsOfDay.add(t);
+            }
+        }
+        // Hiển thị dialog với danh sách giao dịch
+        if (transactionsOfDay.isEmpty()) {
+            new AlertDialog.Builder(requireContext())
+                .setTitle("Lịch sử giao dịch")
+                .setMessage("Không có giao dịch nào trong ngày này.")
+                .setPositiveButton("Đóng", null)
+                .show();
+        } else {
+            StringBuilder sb = new StringBuilder();
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm  ", Locale.getDefault());
+            NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+            for (Transaction t : transactionsOfDay) {
+                sb.append(sdf.format(t.getDate()));
+                if (t.getType().equals("income")) {
+                    sb.append("+");
+                } else if (t.getType().equals("expense")) {
+                    sb.append("-");
+                }
+                sb.append(nf.format(t.getAmount()))
+                  .append(" (Danh mục: ");
+                Category cat = DataManager.getInstance().getCategoryById(t.getCategoryId(), t.getType());
+                sb.append(cat != null ? cat.getName() : "?");
+                sb.append(")");
+                if (t.getNote() != null && !t.getNote().isEmpty()) {
+                    sb.append("\nGhi chú: ").append(t.getNote());
+                }
+                sb.append("\n\n");
+            }
+            new AlertDialog.Builder(requireContext())
+                .setTitle("Lịch sử giao dịch ngày " + new SimpleDateFormat("dd/MM/yyyy").format(date))
+                .setMessage(sb.toString())
+                .setPositiveButton("Đóng", null)
+                .show();
+        }
+    }
     public interface OnDaySelectedListener {
         void onDaySelected(Date selectedDate);
     }
@@ -110,8 +159,7 @@ public class CalendarFragment extends Fragment implements CalendarDayAdapter.OnD
 
         currentMonthCalendar = Calendar.getInstance();
         calendarDays = new ArrayList<>();
-        calendarDayAdapter = new CalendarDayAdapter(calendarDays, this, currencyFormat);
-
+        calendarDayAdapter = new CalendarDayAdapter(calendarDays, this, this, currencyFormat);
         rvCalendarGrid.setLayoutManager(new GridLayoutManager(getContext(), 7));
         rvCalendarGrid.setAdapter(calendarDayAdapter);
     }
@@ -182,6 +230,13 @@ public class CalendarFragment extends Fragment implements CalendarDayAdapter.OnD
     public void onDayDoubleClick(CalendarDay day) {
         if (onDaySelectedListener != null && day.getDate() != null) {
             onDaySelectedListener.onDaySelected(day.getDate());
+        }
+    }
+
+    @Override
+    public void onDayLongClick(CalendarDay day) {
+        if (day.getDate() != null) {
+            showTransactionsOfDay(day.getDate());
         }
     }
 
