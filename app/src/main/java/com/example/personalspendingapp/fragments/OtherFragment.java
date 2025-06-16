@@ -1,7 +1,9 @@
 package com.example.personalspendingapp.fragments;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -24,6 +26,9 @@ import android.graphics.drawable.shapes.OvalShape;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.app.ProgressDialog;
+import android.content.ActivityNotFoundException;
+import androidx.core.content.FileProvider;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -45,21 +50,37 @@ import com.example.personalspendingapp.models.Transaction;
 import com.example.personalspendingapp.models.Category;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.EmailAuthProvider;
+import com.example.personalspendingapp.utils.ReportExporter;
 
+import java.io.File;
 import java.util.Date;
+import java.util.Locale;
+import java.text.SimpleDateFormat;
+import android.net.Uri;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import android.app.Activity;
+import java.util.HashMap;
+import java.util.Map;
 
 public class OtherFragment extends Fragment {
     private static final String TAG = "OtherFragment";
     private View view;
-    private ImageView ivProfileAvatar;
     private TextView tvProfileName, tvProfileDescription;
     private MaterialCardView cardProfile;
     private MaterialButton btnLogout;
     private MaterialButton btnChangePassword;
+    private MaterialButton btnNotificationSettings;
+    private MaterialButton btnCategoryManagement;
+    private MaterialButton btnEditProfile;
+    private MaterialButton btnExportReport;
     private ProgressBar progressBar;
 
     private FirebaseAuth mAuth;
     private DataManager dataManager;
+    private File tempReportFile; // Thêm biến tạm để lưu file báo cáo đã tạo
 
     // Danh sách tiền tệ và ngôn ngữ
     private final String[] currencies = {"VND", "USD", "EUR", "GBP", "JPY", "KRW", "CNY"};
@@ -83,54 +104,6 @@ public class OtherFragment extends Fragment {
         
         notificationHelper = new NotificationHelper(getContext());
 
-        // Ánh xạ các nút test thông báo
-        Button btnTestDailyReminder = view.findViewById(R.id.btnTestDailyReminder);
-        Button btnTestBudgetExceeded = view.findViewById(R.id.btnTestBudgetExceeded);
-        Button btnTestUnusualExpense = view.findViewById(R.id.btnTestUnusualExpense);
-        Button btnTestWeeklySummary = view.findViewById(R.id.btnTestWeeklySummary);
-        Button btnTestNewIncome = view.findViewById(R.id.btnTestNewIncome);
-
-        // Thiết lập listener cho các nút test thông báo
-        btnTestDailyReminder.setOnClickListener(v -> {
-            notificationHelper.showDailyReminder();
-            Toast.makeText(getContext(), "Đã gửi thông báo nhắc nhở hàng ngày", Toast.LENGTH_SHORT).show();
-        });
-
-        btnTestBudgetExceeded.setOnClickListener(v -> {
-            // Sử dụng giá trị mẫu cho test
-            notificationHelper.showBudgetExceededNotification(8000000, 10000000);
-            Toast.makeText(getContext(), "Đã gửi thông báo cảnh báo vượt ngân sách", Toast.LENGTH_SHORT).show();
-        });
-
-        btnTestUnusualExpense.setOnClickListener(v -> {
-            // Sử dụng dữ liệu mẫu cho test
-            Transaction testTransaction = new Transaction();
-            testTransaction.setAmount(5000000);
-            testTransaction.setType("expense");
-            testTransaction.setCategoryId("food"); // Cần đảm bảo categoryId này tồn tại hoặc xử lý null trong NotificationHelper
-            testTransaction.setNote("Ăn uống nhà hàng sang trọng");
-            testTransaction.setDate(new Date());
-            notificationHelper.showUnusualExpenseNotification(testTransaction);
-             Toast.makeText(getContext(), "Đã gửi thông báo chi tiêu bất thường", Toast.LENGTH_SHORT).show();
-        });
-
-        btnTestWeeklySummary.setOnClickListener(v -> {
-            notificationHelper.showWeeklySummaryNotification();
-             Toast.makeText(getContext(), "Đã gửi thông báo tổng kết tuần", Toast.LENGTH_SHORT).show();
-        });
-
-        btnTestNewIncome.setOnClickListener(v -> {
-            // Sử dụng dữ liệu mẫu cho test
-            Transaction incomeTransaction = new Transaction();
-            incomeTransaction.setAmount(15000000);
-            incomeTransaction.setType("income");
-            incomeTransaction.setCategoryId("salary"); // Cần đảm bảo categoryId này tồn tại hoặc xử lý null trong NotificationHelper
-            incomeTransaction.setNote("Lương tháng 13");
-            incomeTransaction.setDate(new Date());
-            notificationHelper.showNewIncomeNotification(incomeTransaction);
-             Toast.makeText(getContext(), "Đã gửi thông báo thu nhập mới", Toast.LENGTH_SHORT).show();
-        });
-
         // Thiết lập listener cho nút đăng xuất
         btnLogout.setOnClickListener(v -> {
             showLogoutConfirmationDialog();
@@ -146,11 +119,19 @@ public class OtherFragment extends Fragment {
 
     private void initViews(View view) {
         Log.d(TAG, "initViews: start");
-        ivProfileAvatar = view.findViewById(R.id.ivProfileAvatar);
         tvProfileName = view.findViewById(R.id.tvProfileName);
         tvProfileDescription = view.findViewById(R.id.tvProfileDescription);
         btnLogout = view.findViewById(R.id.btnLogout);
         btnChangePassword = view.findViewById(R.id.btnChangePassword);
+        btnNotificationSettings = view.findViewById(R.id.btnNotificationSettings);
+        btnCategoryManagement = view.findViewById(R.id.btnCategoryManagement);
+        btnEditProfile = view.findViewById(R.id.btnEditProfile);
+        btnExportReport = view.findViewById(R.id.btnExportReport);
+        if (btnEditProfile == null) {
+            Log.e(TAG, "initViews: btnEditProfile not found with ID R.id.btnEditProfile");
+        } else {
+            Log.d(TAG, "initViews: btnEditProfile found");
+        }
         progressBar = view.findViewById(R.id.progressBar);
         
         if (tvProfileDescription == null) {
@@ -162,8 +143,10 @@ public class OtherFragment extends Fragment {
             Log.e(TAG, "initViews: cardProfile not found with ID R.id.cardProfile");
         }
 
-        if (cardProfile != null) {
-            cardProfile.setOnClickListener(v -> {
+        // Lắng nghe sự kiện click cho nút chỉnh sửa hồ sơ
+        if (btnEditProfile != null) {
+            btnEditProfile.setOnClickListener(v -> {
+                Log.d(TAG, "btnEditProfile: Click event detected");
                 showEditProfileDialog();
             });
         }
@@ -191,6 +174,38 @@ public class OtherFragment extends Fragment {
                 Log.e(TAG, "Error loading data for profile update: " + error);
             }
         });
+
+        // Thêm listener cho nút QUẢN LÝ DANH MỤC
+        if (btnCategoryManagement != null) {
+            btnCategoryManagement.setOnClickListener(v -> {
+                Log.d(TAG, "btnCategoryManagement: Click event detected");
+                if (getActivity() != null) {
+                    getActivity().getSupportFragmentManager().beginTransaction()
+                            .replace(R.id.fragment_container, new CategoryManagementFragment())
+                            .addToBackStack(null)
+                            .commit();
+                }
+            });
+        }
+
+        // Thêm listener cho nút CÀI ĐẶT THÔNG BÁO
+        if (btnNotificationSettings != null) {
+            btnNotificationSettings.setOnClickListener(v -> {
+                showNotificationSettingsDialog();
+            });
+        }
+
+        btnExportReport.setOnClickListener(v -> {
+            // Kiểm tra quyền ghi file
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                return;
+            }
+
+            // Lưu báo cáo vào thiết bị
+            saveReportToDevice();
+        });
     }
 
     private void loadUserProfile() {
@@ -211,10 +226,6 @@ public class OtherFragment extends Fragment {
 
         tvProfileName.setText(name);
         tvProfileDescription.setText(description);
-
-        // Generate and set the initial drawable
-        Drawable initialDrawable = generateInitialDrawable(name);
-        ivProfileAvatar.setImageDrawable(initialDrawable);
 
         Log.d(TAG, "loadUserProfile: Profile data loaded or default set");
     }
@@ -427,34 +438,255 @@ public class OtherFragment extends Fragment {
         }
     }
 
-    // Helper method to generate a circular drawable with an initial
-    private Drawable generateInitialDrawable(String name) {
-        String initial = (name == null || name.trim().isEmpty() || name.equals("default")) ? "D" : name.substring(0, 1).toUpperCase();
+    private void authenticateAndChangePassword(String currentPassword, String newPassword) {
+        // Implementation of authenticateAndChangePassword method
+    }
 
-        int size = (int) getResources().getDimension(R.dimen.avatar_size);
-        Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
+    private void reauthenticateUser(FirebaseUser user, String currentPassword, Runnable onSuccess) {
+        // Implementation of reauthenticateUser method
+    }
 
-        // Draw background circle
-        Paint backgroundPaint = new Paint();
-        backgroundPaint.setAntiAlias(true);
-        backgroundPaint.setColor(ContextCompat.getColor(getContext(), R.color.colorPrimary));
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f, backgroundPaint);
+    private void updatePassword(FirebaseUser user, String newPassword) {
+        // Implementation of updatePassword method
+    }
 
-        // Draw text (initial)
-        Paint textPaint = new Paint();
-        textPaint.setAntiAlias(true);
-        textPaint.setColor(Color.WHITE);
-        textPaint.setTextSize(size * 0.4f);
-        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
-        textPaint.setTextAlign(Paint.Align.CENTER);
+    private void displayMessage(String message) {
+        // Implementation of displayMessage method
+    }
 
-        // Calculate text position
-        float x = size / 2f;
-        float y = (size / 2f) - ((textPaint.descent() + textPaint.ascent()) / 2f);
+    private void updateProgressBar(boolean show) {
+        // Implementation of updateProgressBar method
+    }
 
-        canvas.drawText(initial, x, y, textPaint);
+    private void showNotificationSettingsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_notification_settings, null);
+        builder.setView(dialogView);
 
-        return new BitmapDrawable(getResources(), bitmap);
+        AlertDialog dialog = builder.create();
+
+        // Khởi tạo các nút test thông báo trong dialog
+        MaterialButton btnTestDailyReminder = dialogView.findViewById(R.id.btnTestDailyReminder);
+        MaterialButton btnTestBudgetExceeded = dialogView.findViewById(R.id.btnTestBudgetExceeded);
+        MaterialButton btnTestUnusualExpense = dialogView.findViewById(R.id.btnTestUnusualExpense);
+        MaterialButton btnTestWeeklySummary = dialogView.findViewById(R.id.btnTestWeeklySummary);
+        MaterialButton btnTestNewIncome = dialogView.findViewById(R.id.btnTestNewIncome);
+
+        // Thiết lập listener cho các nút test thông báo
+        btnTestDailyReminder.setOnClickListener(v -> {
+            notificationHelper.showDailyReminder();
+            Toast.makeText(getContext(), "Đã gửi thông báo nhắc nhở hàng ngày", Toast.LENGTH_SHORT).show();
+        });
+
+        btnTestBudgetExceeded.setOnClickListener(v -> {
+            notificationHelper.showBudgetExceededNotification(8000000, 10000000);
+            Toast.makeText(getContext(), "Đã gửi thông báo cảnh báo vượt ngân sách", Toast.LENGTH_SHORT).show();
+        });
+
+        btnTestUnusualExpense.setOnClickListener(v -> {
+            Transaction testTransaction = new Transaction();
+            testTransaction.setAmount(5000000);
+            testTransaction.setType("expense");
+            testTransaction.setCategoryId("food");
+            testTransaction.setNote("Ăn uống nhà hàng sang trọng");
+            testTransaction.setDate(new Date());
+            notificationHelper.showUnusualExpenseNotification(testTransaction);
+            Toast.makeText(getContext(), "Đã gửi thông báo chi tiêu bất thường", Toast.LENGTH_SHORT).show();
+        });
+
+        btnTestWeeklySummary.setOnClickListener(v -> {
+            notificationHelper.showWeeklySummaryNotification();
+            Toast.makeText(getContext(), "Đã gửi thông báo tổng kết tuần", Toast.LENGTH_SHORT).show();
+        });
+
+        btnTestNewIncome.setOnClickListener(v -> {
+            Transaction incomeTransaction = new Transaction();
+            incomeTransaction.setAmount(15000000);
+            incomeTransaction.setType("income");
+            incomeTransaction.setCategoryId("salary");
+            incomeTransaction.setNote("Lương tháng 13");
+            incomeTransaction.setDate(new Date());
+            notificationHelper.showNewIncomeNotification(incomeTransaction);
+            Toast.makeText(getContext(), "Đã gửi thông báo thu nhập mới", Toast.LENGTH_SHORT).show();
+        });
+
+        dialog.show();
+    }
+
+    private void saveReportToDevice() {
+        // Hiển thị dialog đang xử lý
+        ProgressDialog progressDialog = new ProgressDialog(requireContext());
+        progressDialog.setMessage("Đang tạo báo cáo...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        // Chạy trong thread riêng để không block UI
+        new Thread(() -> {
+            ReportExporter exporter = new ReportExporter(requireContext());
+            tempReportFile = exporter.exportFinancialReport(); // Lưu file tạm vào biến
+            requireActivity().runOnUiThread(() -> {
+                progressDialog.dismiss();
+                if (tempReportFile != null) {
+                    // Tạo intent để chọn thư mục lưu
+                    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType("application/pdf");
+                    intent.putExtra(Intent.EXTRA_TITLE, "BaoCaoTaiChinh_" + 
+                        new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date()) + ".pdf");
+                    
+                    try {
+                        startActivityForResult(intent, 1);
+                    } catch (ActivityNotFoundException e) {
+                        Toast.makeText(requireContext(),
+                            "Không tìm thấy ứng dụng quản lý file",
+                            Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(requireContext(), 
+                        "Có lỗi xảy ra khi xuất báo cáo", 
+                        Toast.LENGTH_SHORT).show();
+                }
+            });
+        }).start();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1 && resultCode == Activity.RESULT_OK && data != null) {
+            try {
+                // Lấy URI của file đã chọn
+                Uri uri = data.getData();
+                if (uri != null && tempReportFile != null) { // Đảm bảo tempReportFile tồn tại
+                    // Hiển thị dialog đang xử lý
+                    ProgressDialog progressDialog = new ProgressDialog(requireContext());
+                    progressDialog.setMessage("Đang lưu báo cáo...");
+                    progressDialog.setCancelable(false);
+                    progressDialog.show();
+
+                    // Chạy trong thread riêng để không block UI
+                    new Thread(() -> {
+                        try {
+                            // Sao chép nội dung file đã tạo vào vị trí đã chọn
+                            try (InputStream in = new FileInputStream(tempReportFile);
+                                 OutputStream out = requireContext().getContentResolver().openOutputStream(uri)) {
+                                if (out != null) {
+                                    byte[] buffer = new byte[1024];
+                                    int read;
+                                    while ((read = in.read(buffer)) != -1) {
+                                        out.write(buffer, 0, read);
+                                    }
+                                    requireActivity().runOnUiThread(() -> {
+                                        progressDialog.dismiss();
+                                        Toast.makeText(requireContext(),
+                                            "Đã lưu báo cáo thành công",
+                                            Toast.LENGTH_SHORT).show();
+                                    });
+                                }
+                            } finally {
+                                // Xóa file tạm sau khi đã sao chép xong
+                                tempReportFile.delete();
+                                tempReportFile = null; // Đặt lại về null
+                            }
+                        } catch (Exception e) {
+                            requireActivity().runOnUiThread(() -> {
+                                progressDialog.dismiss();
+                                Toast.makeText(requireContext(),
+                                    "Có lỗi xảy ra khi lưu báo cáo: " + e.getMessage(),
+                                    Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }).start();
+                }
+            } catch (Exception e) {
+                Toast.makeText(requireContext(),
+                    "Có lỗi xảy ra: " + e.getMessage(),
+                    Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void sendReportViaEmail() {
+        // Hiển thị dialog đang xử lý
+        ProgressDialog progressDialog = new ProgressDialog(requireContext());
+        progressDialog.setMessage("Đang tạo báo cáo...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        // Chạy trong thread riêng để không block UI
+        new Thread(() -> {
+            try {
+                ReportExporter exporter = new ReportExporter(requireContext());
+                File reportFile = exporter.exportFinancialReport();
+
+                if (reportFile != null) {
+                    // Lấy email người dùng hiện tại
+                    FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                    if (currentUser != null && currentUser.getEmail() != null) {
+                        String userEmail = currentUser.getEmail();
+                        
+                        // Tạo nội dung email
+                        String emailSubject = "Báo cáo tài chính cá nhân - " + new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
+                        String emailBody = "Kính gửi " + currentUser.getDisplayName() + ",\n\n" +
+                            "Đính kèm là báo cáo tài chính cá nhân của bạn được tạo vào " + 
+                            new SimpleDateFormat("HH:mm:ss dd/MM/yyyy", Locale.getDefault()).format(new Date()) + ".\n\n" +
+                            "Báo cáo bao gồm:\n" +
+                            "- Tổng quan tài chính\n" +
+                            "- Biểu đồ phân bổ thu chi\n" +
+                            "- Chi tiết giao dịch theo tháng\n" +
+                            "- Thông tin ứng dụng\n\n" +
+                            "Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi qua email support@personalspendingapp.com\n\n" +
+                            "Trân trọng,\n" +
+                            "Đội ngũ Personal Spending App";
+
+                        // Tạo URI cho file PDF
+                        Uri pdfUri = FileProvider.getUriForFile(requireContext(),
+                            requireContext().getPackageName() + ".provider",
+                            reportFile);
+
+                        // Tạo intent để gửi email
+                        Intent intent = new Intent(Intent.ACTION_SEND);
+                        intent.setType("application/pdf");
+                        intent.putExtra(Intent.EXTRA_EMAIL, new String[]{userEmail});
+                        intent.putExtra(Intent.EXTRA_SUBJECT, emailSubject);
+                        intent.putExtra(Intent.EXTRA_TEXT, emailBody);
+                        intent.putExtra(Intent.EXTRA_STREAM, pdfUri);
+                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                        requireActivity().runOnUiThread(() -> {
+                            progressDialog.dismiss();
+                            try {
+                                startActivity(Intent.createChooser(intent, "Gửi báo cáo qua email"));
+                            } catch (ActivityNotFoundException e) {
+                                Toast.makeText(requireContext(),
+                                    "Không tìm thấy ứng dụng email",
+                                    Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    } else {
+                        requireActivity().runOnUiThread(() -> {
+                            progressDialog.dismiss();
+                            Toast.makeText(requireContext(),
+                                "Không tìm thấy email người dùng",
+                                Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                } else {
+                    requireActivity().runOnUiThread(() -> {
+                        progressDialog.dismiss();
+                        Toast.makeText(requireContext(),
+                            "Có lỗi xảy ra khi tạo báo cáo",
+                            Toast.LENGTH_SHORT).show();
+                    });
+                }
+            } catch (Exception e) {
+                requireActivity().runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(requireContext(),
+                        "Có lỗi xảy ra: " + e.getMessage(),
+                        Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
     }
 } 

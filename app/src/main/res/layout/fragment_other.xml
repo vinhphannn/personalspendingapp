@@ -28,54 +28,78 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
         app:cardCornerRadius="8dp"
-        app:cardElevation="4dp">
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="@android:color/white">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="16dp"
-            android:gravity="center_vertical">
-
-            <com.google.android.material.imageview.ShapeableImageView
-                android:id="@+id/ivProfileAvatar"
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:scaleType="centerCrop"
-                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"
-                android:src="@drawable/default_avatar"/> <!-- Placeholder avatar -->
+            android:orientation="vertical"
+            android:padding="16dp">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginStart="16dp">
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingBottom="8dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_person"
+                    android:contentDescription="Biểu tượng người dùng"
+                    android:layout_marginEnd="16dp"/>
 
                 <TextView
                     android:id="@+id/tvProfileName"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Tên Người Dùng"
+                    android:text="name"
                     android:textSize="18sp"
-                    android:textStyle="bold"/>
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingBottom="16dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_email"
+                    android:contentDescription="Biểu tượng email"
+                    android:layout_marginEnd="16dp"/>
 
                 <TextView
                     android:id="@+id/tvProfileDescription"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Mô tả hoặc email"
+                    android:text="dk@gmail.com"
                     android:textSize="14sp"/>
-
             </LinearLayout>
 
-            <ImageButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnEditProfile"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:src="@drawable/ic_edit"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Chỉnh sửa hồ sơ"/>
+                android:text="CHỈNH SỬA THÔNG TIN"
+                android:textColor="@color/purple_500"
+                app:backgroundTint="@android:color/white"
+                app:strokeColor="@color/purple_500"
+                app:strokeWidth="1dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnChangePassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Đổi mật khẩu"
+                android:textColor="@color/white"
+                app:backgroundTint="@color/purple_500"
+                android:layout_marginTop="16dp"/>
 
         </LinearLayout>
 
@@ -91,142 +115,216 @@
         android:textStyle="bold"
         android:paddingBottom="8dp"/>
 
-    <LinearLayout
-        android:id="@+id/llCurrencySetting"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardSettings"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp"
-        android:gravity="center_vertical"
-        android:background="?attr/selectableItemBackground">
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="@android:color/white">
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Đơn vị tiền tệ"
-            android:textSize="16sp"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="307dp"
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <TextView
-            android:id="@+id/tvCurrencyValue"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="VND"
-            android:textSize="16sp"
-            android:textColor="@android:color/darker_gray"/>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnExportReport"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:paddingVertical="12dp"
+                android:text="XUẤT BÁO CÁO TÀI CHÍNH"
+                android:textColor="@android:color/white"
+                app:backgroundTint="@color/purple_500"
+                app:icon="@drawable/ic_file_download"
+                app:iconGravity="textStart"
+                app:iconTint="@android:color/white" />
 
-        <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_arrow_right"
-            android:contentDescription="Mũi tên phải"
-            android:layout_marginStart="8dp"/>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnNotificationSettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:paddingVertical="12dp"
+                android:text="CÀI ĐẶT THÔNG BÁO"
+                android:textColor="@android:color/white"
+                app:backgroundTint="@color/purple_500"
+                app:icon="@drawable/ic_notification"
+                app:iconGravity="textStart"
+                app:iconTint="@android:color/white" />
 
-    </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBudgetSettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:paddingVertical="12dp"
+                android:text="CÀI ĐẶT NGÂN SÁCH"
+                android:textColor="@android:color/white"
+                app:backgroundTint="@color/purple_500"
+                app:icon="@drawable/ic_dollar_sign"
+                app:iconGravity="textStart"
+                app:iconTint="@android:color/white" />
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@android:color/darker_gray"/>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCategoryManagement"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="12dp"
+                android:text="QUẢN LÝ DANH MỤC"
+                android:textColor="@android:color/white"
+                app:backgroundTint="@color/purple_500"
+                app:icon="@drawable/ic_category"
+                app:iconGravity="textStart"
+                app:iconTint="@android:color/white" />
 
-    <LinearLayout
-        android:id="@+id/llLanguageSetting"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp"
-        android:gravity="center_vertical"
-        android:background="?attr/selectableItemBackground">
+        </LinearLayout>
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Ngôn ngữ"
-            android:textSize="16sp"/>
+    </com.google.android.material.card.MaterialCardView>
 
-        <TextView
-            android:id="@+id/tvLanguageValue"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Tiếng Việt"
-            android:textSize="16sp"
-            android:textColor="@android:color/darker_gray"/>
-
-        <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_arrow_right"
-            android:contentDescription="Mũi tên phải"
-            android:layout_marginStart="8dp"/>
-
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@android:color/darker_gray"/>
-
-    <!-- Mục Test Thông báo -->
+    <!-- Mục Thông tin ứng dụng -->
     <TextView
-        android:id="@+id/tvTestNotifications"
+        android:id="@+id/tvAppInfo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Test Thông báo"
+        android:text="Thông tin ứng dụng"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:paddingTop="16dp"
         android:paddingBottom="8dp"/>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnChangePassword"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardAppInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="4dp"
+        android:layout_marginBottom="16dp"
+        app:cardBackgroundColor="@android:color/white">
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Đổi mật khẩu"
-            android:textColor="@color/white"
-            app:backgroundTint="@color/purple_500"
-            android:layout_marginBottom="16dp"/>
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnLogout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Đăng xuất"
-            android:textColor="@color/white"
-            app:backgroundTint="@color/red_500"
-            android:layout_marginBottom="16dp"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingBottom="8dp"
+                android:background="?attr/selectableItemBackground">
 
-    <Button
-        android:id="@+id/btnTestDailyReminder"
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_info"
+                    android:contentDescription="Biểu tượng thông tin"
+                    android:layout_marginEnd="16dp"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Phiên bản"
+                    android:textSize="16sp"/>
+
+                <TextView
+                    android:id="@+id/tvAppVersion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1.0.0"
+                    android:textSize="16sp"
+                    android:textColor="@android:color/darker_gray"/>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@android:color/darker_gray"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:background="?attr/selectableItemBackground">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_privacy_policy"
+                    android:contentDescription="Biểu tượng chính sách bảo mật"
+                    android:layout_marginEnd="16dp"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Chính sách bảo mật"
+                    android:textSize="16sp"/>
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_arrow_right"
+                    android:contentDescription="Mũi tên phải"
+                    android:layout_marginStart="8dp"/>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@android:color/darker_gray"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingTop="8dp"
+                android:background="?attr/selectableItemBackground">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_terms_of_service"
+                    android:contentDescription="Biểu tượng điều khoản dịch vụ"
+                    android:layout_marginEnd="16dp"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Điều khoản dịch vụ"
+                    android:textSize="16sp"/>
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_arrow_right"
+                    android:contentDescription="Mũi tên phải"
+                    android:layout_marginStart="8dp"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnLogout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Test Nhắc nhở hàng ngày"/>
-
-    <Button
-        android:id="@+id/btnTestBudgetExceeded"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Test Cảnh báo vượt ngân sách"/>
-
-    <Button
-        android:id="@+id/btnTestUnusualExpense"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Test Chi tiêu bất thường"/>
-
-    <Button
-        android:id="@+id/btnTestWeeklySummary"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Test Tổng kết tuần"/>
-
-    <Button
-        android:id="@+id/btnTestNewIncome"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Test Thu nhập mới"/>
+        android:text="Đăng xuất"
+        android:textColor="@color/white"
+        app:backgroundTint="@color/red_500"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"/>
 
     <!-- Khoảng trống để cuộn -->
     <View
