@@ -14,13 +14,18 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.example.personalspendingapp.LoginActivity;
 import com.example.personalspendingapp.R;
+import com.example.personalspendingapp.models.Transaction;
+import com.example.personalspendingapp.utils.NotificationHelper;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+
+import java.util.Date;
 
 public class OtherFragment extends Fragment {
 
@@ -31,9 +36,13 @@ public class OtherFragment extends Fragment {
     private LinearLayout llExportReport;
     private LinearLayout llNotificationSettings;
     private LinearLayout llLogout;
+    private MaterialButton btnExportReport;
+    private MaterialButton btnNotificationSettings;
+    private MaterialButton btnLogout;
+    private MaterialButton btnCategoryManagement;
     private TextView tvCurrency;
     private TextView tvLanguage;
-    private MaterialButton btnCategoryManagement;
+    private NotificationHelper notificationHelper;
 
     @Nullable
     @Override
@@ -45,24 +54,30 @@ public class OtherFragment extends Fragment {
         llChangePassword = view.findViewById(R.id.llChangePassword);
         llCurrency = view.findViewById(R.id.llCurrency);
         llLanguage = view.findViewById(R.id.llLanguage);
-        llExportReport = view.findViewById(R.id.llExportReport);
-        llNotificationSettings = view.findViewById(R.id.llNotificationSettings);
-        llLogout = view.findViewById(R.id.llLogout);
+        btnExportReport = view.findViewById(R.id.llExportReport);
+        btnNotificationSettings = view.findViewById(R.id.llNotificationSettings);
+        btnLogout = view.findViewById(R.id.btnLogout);
+        btnCategoryManagement = view.findViewById(R.id.btnCategoryManagement);
         tvCurrency = view.findViewById(R.id.tvCurrency);
         tvLanguage = view.findViewById(R.id.tvLanguage);
-        btnCategoryManagement = view.findViewById(R.id.btnCategoryManagement);
 
         // Thiết lập sự kiện click
         llPersonalInfo.setOnClickListener(v -> showEditProfileDialog());
         llChangePassword.setOnClickListener(v -> showChangePasswordDialog());
         llCurrency.setOnClickListener(v -> showCurrencyDialog());
         llLanguage.setOnClickListener(v -> showLanguageDialog());
-        llExportReport.setOnClickListener(v -> showExportReportDialog());
-        llNotificationSettings.setOnClickListener(v -> showNotificationSettingsDialog());
-        llLogout.setOnClickListener(v -> handleLogout());
+        btnExportReport.setOnClickListener(v -> showExportReportDialog());
+        btnNotificationSettings.setOnClickListener(v -> showNotificationSettingsDialog());
+        btnLogout.setOnClickListener(v -> handleLogout());
         btnCategoryManagement.setOnClickListener(v -> navigateToCategoryManagement());
 
         return view;
+    }
+
+            @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        notificationHelper = new NotificationHelper(requireContext());
     }
 
     private void showEditProfileDialog() {
@@ -88,7 +103,7 @@ public class OtherFragment extends Fragment {
 
             // TODO: Save user data
             Toast.makeText(requireContext(), "Cập nhật thông tin thành công", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
+                dialog.dismiss();
         });
 
         dialog.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
@@ -106,28 +121,28 @@ public class OtherFragment extends Fragment {
 
     private void showChangePasswordDialog() {
         Dialog dialog = new Dialog(requireContext());
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_change_password, null);
+            View dialogView = getLayoutInflater().inflate(R.layout.dialog_change_password, null);
         dialog.setContentView(dialogView);
         dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 
-        TextInputEditText etCurrentPassword = dialogView.findViewById(R.id.etCurrentPassword);
-        TextInputEditText etNewPassword = dialogView.findViewById(R.id.etNewPassword);
-        TextInputEditText etConfirmPassword = dialogView.findViewById(R.id.etConfirmPassword);
+            TextInputEditText etCurrentPassword = dialogView.findViewById(R.id.etCurrentPassword);
+            TextInputEditText etNewPassword = dialogView.findViewById(R.id.etNewPassword);
+            TextInputEditText etConfirmPassword = dialogView.findViewById(R.id.etConfirmPassword);
 
         dialogView.findViewById(R.id.btnSave).setOnClickListener(v -> {
             String currentPassword = etCurrentPassword.getText().toString();
             String newPassword = etNewPassword.getText().toString();
             String confirmPassword = etConfirmPassword.getText().toString();
 
-            if (currentPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
+                        if (currentPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
                 Toast.makeText(requireContext(), "Vui lòng điền đầy đủ thông tin", Toast.LENGTH_SHORT).show();
-                return;
-            }
+                            return;
+                        }
 
-            if (!newPassword.equals(confirmPassword)) {
+                        if (!newPassword.equals(confirmPassword)) {
                 Toast.makeText(requireContext(), "Mật khẩu mới không khớp", Toast.LENGTH_SHORT).show();
-                return;
-            }
+                            return;
+                        }
 
             // TODO: Implement password change logic
             Toast.makeText(requireContext(), "Đổi mật khẩu thành công", Toast.LENGTH_SHORT).show();
@@ -158,8 +173,8 @@ public class OtherFragment extends Fragment {
                 tvCurrency.setText(selectedCurrency);
                 // TODO: Save currency preference
                 Toast.makeText(requireContext(), "Đã cập nhật tiền tệ", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
-            } else {
+                                                        dialog.dismiss();
+                                                    } else {
                 Toast.makeText(requireContext(), "Vui lòng chọn tiền tệ", Toast.LENGTH_SHORT).show();
             }
         });
@@ -189,14 +204,14 @@ public class OtherFragment extends Fragment {
                 // TODO: Save language preference
                 Toast.makeText(requireContext(), "Đã cập nhật ngôn ngữ", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
-            } else {
+                        } else {
                 Toast.makeText(requireContext(), "Vui lòng chọn ngôn ngữ", Toast.LENGTH_SHORT).show();
             }
         });
 
         dialogView.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
 
-        dialog.show();
+            dialog.show();
     }
 
     private void showExportReportDialog() {
@@ -216,17 +231,59 @@ public class OtherFragment extends Fragment {
     }
 
     private void showNotificationSettingsDialog() {
-        Dialog dialog = new Dialog(requireContext());
-        dialog.setContentView(R.layout.dialog_notification_settings);
-        dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_notification_settings, null);
+        builder.setView(dialogView);
 
-        dialog.findViewById(R.id.btnSave).setOnClickListener(v -> {
-            // TODO: Save notification settings
-            Toast.makeText(requireContext(), "Đã lưu cài đặt thông báo", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
+        AlertDialog dialog = builder.create();
+
+        // Khởi tạo các nút test thông báo trong dialog
+        MaterialButton btnTestDailyReminder = dialogView.findViewById(R.id.btnTestDailyReminder);
+        MaterialButton btnTestBudgetExceeded = dialogView.findViewById(R.id.btnTestBudgetExceeded);
+        MaterialButton btnTestUnusualExpense = dialogView.findViewById(R.id.btnTestUnusualExpense);
+        MaterialButton btnTestWeeklySummary = dialogView.findViewById(R.id.btnTestWeeklySummary);
+        MaterialButton btnTestNewIncome = dialogView.findViewById(R.id.btnTestNewIncome);
+        MaterialButton btnClose = dialogView.findViewById(R.id.btnClose);
+
+        // Thiết lập listener cho các nút test thông báo
+        btnTestDailyReminder.setOnClickListener(v -> {
+            notificationHelper.showDailyReminder();
+            Toast.makeText(getContext(), "Đã gửi thông báo nhắc nhở hàng ngày", Toast.LENGTH_SHORT).show();
         });
 
-        dialog.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
+        btnTestBudgetExceeded.setOnClickListener(v -> {
+            notificationHelper.showBudgetExceededNotification(8000000, 10000000);
+            Toast.makeText(getContext(), "Đã gửi thông báo cảnh báo vượt ngân sách", Toast.LENGTH_SHORT).show();
+        });
+
+        btnTestUnusualExpense.setOnClickListener(v -> {
+            Transaction testTransaction = new Transaction();
+            testTransaction.setAmount(5000000);
+            testTransaction.setType("expense");
+            testTransaction.setCategoryId("food");
+            testTransaction.setNote("Ăn uống nhà hàng sang trọng");
+            testTransaction.setDate(new Date());
+            notificationHelper.showUnusualExpenseNotification(testTransaction);
+            Toast.makeText(getContext(), "Đã gửi thông báo chi tiêu bất thường", Toast.LENGTH_SHORT).show();
+        });
+
+        btnTestWeeklySummary.setOnClickListener(v -> {
+            notificationHelper.showWeeklySummaryNotification();
+            Toast.makeText(getContext(), "Đã gửi thông báo tổng kết tuần", Toast.LENGTH_SHORT).show();
+        });
+
+        btnTestNewIncome.setOnClickListener(v -> {
+            Transaction incomeTransaction = new Transaction();
+            incomeTransaction.setAmount(15000000);
+            incomeTransaction.setType("income");
+            incomeTransaction.setCategoryId("salary");
+            incomeTransaction.setNote("Lương tháng 13");
+            incomeTransaction.setDate(new Date());
+            notificationHelper.showNewIncomeNotification(incomeTransaction);
+            Toast.makeText(getContext(), "Đã gửi thông báo thu nhập mới", Toast.LENGTH_SHORT).show();
+        });
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
 
         dialog.show();
     }

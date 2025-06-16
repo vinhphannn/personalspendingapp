@@ -238,7 +238,7 @@
                 android:padding="16dp">
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnExportReport"
+                    android:id="@+id/llExportReport"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
@@ -251,7 +251,7 @@
                     app:iconTint="@android:color/white" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnNotificationSettings"
+                    android:id="@+id/llNotificationSettings"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
@@ -263,23 +263,13 @@
                     app:iconGravity="textStart"
                     app:iconTint="@android:color/white" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnBudgetSettings"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:paddingVertical="12dp"
-                    android:text="CÀI ĐẶT NGÂN SÁCH"
-                    android:textColor="@android:color/white"
-                    app:backgroundTint="@color/purple_500"
-                    app:icon="@drawable/ic_dollar_sign"
-                    app:iconGravity="textStart"
-                    app:iconTint="@android:color/white" />
+
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCategoryManagement"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
                     android:paddingVertical="12dp"
                     android:text="QUẢN LÝ DANH MỤC"
                     android:textColor="@android:color/white"
