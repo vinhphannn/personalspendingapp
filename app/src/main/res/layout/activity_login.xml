@@ -5,6 +5,19 @@
     android:orientation="vertical"
     android:padding="16dp"
     android:gravity="center">
+    <ImageView
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:src="@drawable/personal_spending_app_logo_512x512"
+        android:layout_marginBottom="24dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Đăng nhập"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="32dp"/>
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
@@ -47,10 +60,25 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="Login" />
-    <Button
-        android:id="@+id/signUpButton"
-        android:layout_width="match_parent"
+    <LinearLayout
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Sign Up" />
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="chưa có tài khoản? "/>
+
+        <TextView
+            android:id="@+id/tvLogin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Đăng ký"
+            android:textColor="@color/purple_500"
+            android:clickable="true"
+            android:focusable="true"/>
+
+    </LinearLayout>
 </LinearLayout>

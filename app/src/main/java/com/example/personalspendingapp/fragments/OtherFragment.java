@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,7 +21,10 @@ import androidx.fragment.app.FragmentTransaction;
 
 import com.example.personalspendingapp.LoginActivity;
 import com.example.personalspendingapp.R;
+import com.example.personalspendingapp.data.DataManager;
 import com.example.personalspendingapp.models.Transaction;
+import com.example.personalspendingapp.models.UserData;
+import com.example.personalspendingapp.models.UserProfile;
 import com.example.personalspendingapp.utils.NotificationHelper;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -33,16 +37,16 @@ public class OtherFragment extends Fragment {
     private LinearLayout llChangePassword;
     private LinearLayout llCurrency;
     private LinearLayout llLanguage;
-    private LinearLayout llExportReport;
-    private LinearLayout llNotificationSettings;
-    private LinearLayout llLogout;
     private MaterialButton btnExportReport;
     private MaterialButton btnNotificationSettings;
     private MaterialButton btnLogout;
     private MaterialButton btnCategoryManagement;
+    private MaterialButton btnEditProfile;
     private TextView tvCurrency;
     private TextView tvLanguage;
     private NotificationHelper notificationHelper;
+    private TextView tvProfileName;
+    private TextView tvProfileEmail;
 
     @Nullable
     @Override
@@ -58,8 +62,17 @@ public class OtherFragment extends Fragment {
         btnNotificationSettings = view.findViewById(R.id.llNotificationSettings);
         btnLogout = view.findViewById(R.id.btnLogout);
         btnCategoryManagement = view.findViewById(R.id.btnCategoryManagement);
+        btnEditProfile = view.findViewById(R.id.btnEditProfile);
         tvCurrency = view.findViewById(R.id.tvCurrency);
         tvLanguage = view.findViewById(R.id.tvLanguage);
+        tvProfileName = view.findViewById(R.id.tvProfileName);
+        tvProfileEmail = view.findViewById(R.id.tvProfileEmail);
+
+        updateProfileInfo();
+
+        // Thêm ánh xạ cho tên và email
+        TextView tvProfileName = view.findViewById(R.id.tvProfileName);
+        TextView tvProfileEmail = view.findViewById(R.id.tvProfileEmail);
 
         // Thiết lập sự kiện click
         llPersonalInfo.setOnClickListener(v -> showEditProfileDialog());
@@ -68,16 +81,26 @@ public class OtherFragment extends Fragment {
         llLanguage.setOnClickListener(v -> showLanguageDialog());
         btnExportReport.setOnClickListener(v -> showExportReportDialog());
         btnNotificationSettings.setOnClickListener(v -> showNotificationSettingsDialog());
-        btnLogout.setOnClickListener(v -> handleLogout());
+        btnLogout.setOnClickListener(v -> showLogoutConfirmationDialog());
         btnCategoryManagement.setOnClickListener(v -> navigateToCategoryManagement());
+        btnEditProfile.setOnClickListener(v -> showEditProfileDialog());
 
         return view;
     }
 
-            @Override
+    @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         notificationHelper = new NotificationHelper(requireContext());
+    }
+
+    private void updateProfileInfo() {
+        UserData userData = DataManager.getInstance().getUserData();
+        if (userData != null && userData.getProfile() != null) {
+            UserProfile profile = userData.getProfile();
+            if (tvProfileName != null) tvProfileName.setText(profile.getName() != null ? profile.getName() : "Chưa có tên");
+            if (tvProfileEmail != null) tvProfileEmail.setText(profile.getEmail() != null ? profile.getEmail() : "");
+        }
     }
 
     private void showEditProfileDialog() {
@@ -85,25 +108,76 @@ public class OtherFragment extends Fragment {
         dialog.setContentView(R.layout.dialog_edit_profile);
         dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 
+        ImageView imgAvatar = dialog.findViewById(R.id.imgAvatar);
+        TextView tvChangeAvatar = dialog.findViewById(R.id.tvChangeAvatar);
         TextInputEditText etName = dialog.findViewById(R.id.etName);
         TextInputEditText etEmail = dialog.findViewById(R.id.etEmail);
         TextInputEditText etPhone = dialog.findViewById(R.id.etPhone);
 
-        // TODO: Load user data and set to views
+        // Load user data from DataManager
+        UserData userData = DataManager.getInstance().getUserData();
+        if (userData != null && userData.getProfile() != null) {
+            UserProfile profile = userData.getProfile();
+            etName.setText(profile.getName());
+            etEmail.setText(profile.getEmail());
+            etPhone.setText(profile.getPhone());
+            
+            // Load avatar if exists
+            if (profile.getAvatarUrl() != null && !profile.getAvatarUrl().isEmpty()) {
+                // TODO: Load avatar image using Glide or Picasso
+                // For now, just use default avatar
+                imgAvatar.setImageResource(R.drawable.ic_person);
+            }
+        }
+
+        // Handle avatar change
+        tvChangeAvatar.setOnClickListener(v -> {
+            // TODO: Implement image picker
+            Toast.makeText(requireContext(), "Chức năng đang được phát triển", Toast.LENGTH_SHORT).show();
+        });
 
         dialog.findViewById(R.id.btnSave).setOnClickListener(v -> {
-            String name = etName.getText().toString();
-            String email = etEmail.getText().toString();
-            String phone = etPhone.getText().toString();
+            String name = etName.getText().toString().trim();
+            String email = etEmail.getText().toString().trim();
+            String phone = etPhone.getText().toString().trim();
 
-            if (name.isEmpty() || email.isEmpty() || phone.isEmpty()) {
-                Toast.makeText(requireContext(), "Vui lòng điền đầy đủ thông tin", Toast.LENGTH_SHORT).show();
+            if (name.isEmpty() || email.isEmpty()) {
+                Toast.makeText(requireContext(), "Vui lòng nhập tên và email", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // TODO: Save user data
-            Toast.makeText(requireContext(), "Cập nhật thông tin thành công", Toast.LENGTH_SHORT).show();
+            // Validate email format
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                Toast.makeText(requireContext(), "Email không hợp lệ", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Chỉ kiểm tra định dạng nếu có nhập số điện thoại
+            if (!phone.isEmpty() && !phone.matches("\\d{10,11}")) {
+                Toast.makeText(requireContext(), "Số điện thoại không hợp lệ", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Update user profile
+            UserData currentUserData = DataManager.getInstance().getUserData();
+            if (currentUserData != null) {
+                UserProfile profile = currentUserData.getProfile();
+                if (profile == null) {
+                    profile = new UserProfile();
+                }
+                profile.setName(name);
+                profile.setEmail(email);
+                profile.setPhone(phone);
+                currentUserData.setProfile(profile);
+
+                // Save to DataManager
+                DataManager.getInstance().saveUserData();
+                Toast.makeText(requireContext(), "Cập nhật thông tin thành công", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
+                updateProfileInfo();
+            } else {
+                Toast.makeText(requireContext(), "Không thể cập nhật thông tin", Toast.LENGTH_SHORT).show();
+            }
         });
 
         dialog.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
@@ -288,8 +362,21 @@ public class OtherFragment extends Fragment {
         dialog.show();
     }
 
+    private void showLogoutConfirmationDialog() {
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Xác nhận đăng xuất")
+            .setMessage("Bạn có chắc chắn muốn đăng xuất không?")
+            .setPositiveButton("Đăng xuất", (dialog, which) -> handleLogout())
+            .setNegativeButton("Hủy", null)
+            .show();
+    }
+
     private void handleLogout() {
-        // TODO: Clear user session and preferences
+        // Đăng xuất Firebase
+        com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
+        // Xóa dữ liệu local nếu cần
+        DataManager.getInstance().clearData();
+        // Chuyển về màn hình đăng nhập và clear back stack
         Intent intent = new Intent(requireContext(), LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);

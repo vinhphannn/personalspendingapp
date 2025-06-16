@@ -22,7 +22,7 @@ public class LoginActivity extends AppCompatActivity {
     private TextInputEditText emailEditText;
     private TextInputEditText passwordEditText;
     private Button loginButton;
-    private Button signUpButton;
+    private TextView tvLogin;
     private TextView forgotPasswordText;
 
     @Override
@@ -37,7 +37,7 @@ public class LoginActivity extends AppCompatActivity {
         emailEditText = findViewById(R.id.emailEditText);
         passwordEditText = findViewById(R.id.passwordEditText);
         loginButton = findViewById(R.id.loginButton);
-        signUpButton = findViewById(R.id.signUpButton);
+        tvLogin = findViewById(R.id.tvLogin);
         forgotPasswordText = findViewById(R.id.forgotPasswordText);
 
         // Handle Login Button Click
@@ -55,7 +55,7 @@ public class LoginActivity extends AppCompatActivity {
         });
 
         // Handle Sign Up Button Click
-        signUpButton.setOnClickListener(v -> {
+        tvLogin.setOnClickListener(v -> {
             Intent intent = new Intent(LoginActivity.this, SignUpActivity.class);
             startActivity(intent);
         });

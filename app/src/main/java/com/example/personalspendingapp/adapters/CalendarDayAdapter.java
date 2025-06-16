@@ -23,14 +23,20 @@ public class CalendarDayAdapter extends RecyclerView.Adapter<CalendarDayAdapter.
     private final NumberFormat currencyFormat;
     private final OnDayDoubleClickListener doubleClickListener;
     private CalendarDay selectedDay;
+    private final OnDayLongClickListener longClickListener;
 
     public interface OnDayDoubleClickListener {
         void onDayDoubleClick(CalendarDay day);
     }
 
-    public CalendarDayAdapter(List<CalendarDay> calendarDays, OnDayDoubleClickListener doubleClickListener, NumberFormat currencyFormat) {
+    public interface OnDayLongClickListener {
+        void onDayLongClick(CalendarDay day);
+    }
+
+    public CalendarDayAdapter(List<CalendarDay> calendarDays, OnDayDoubleClickListener doubleClickListener, OnDayLongClickListener longClickListener, NumberFormat currencyFormat) {
         this.calendarDays = calendarDays;
         this.doubleClickListener = doubleClickListener;
+        this.longClickListener = longClickListener;
         this.currencyFormat = currencyFormat;
     }
 
@@ -69,6 +75,15 @@ public class CalendarDayAdapter extends RecyclerView.Adapter<CalendarDayAdapter.
                     setSelectedDay(day);
                     doubleClickListener.onDayDoubleClick(day);
                 }
+            });
+
+            // Handle long click
+            holder.itemView.setOnLongClickListener(v -> {
+                if (longClickListener != null) {
+                    longClickListener.onDayLongClick(day);
+                    return true;
+                }
+                return false;
             });
 
             // Format and display income/expense

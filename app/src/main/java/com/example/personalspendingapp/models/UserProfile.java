@@ -7,6 +7,7 @@ public class UserProfile {
     private String currency;
     private String language;
     private long createdAt;
+    private String avatarUrl;
 
     public UserProfile() {
         // Required empty constructor for Firestore
@@ -39,4 +40,7 @@ public class UserProfile {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 } 
