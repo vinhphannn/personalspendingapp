@@ -1,0 +1,147 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Month Navigation -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical|center_horizontal"
+            android:layout_marginBottom="16dp">
+
+            <ImageButton
+                android:id="@+id/btnPreviousMonth"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@android:drawable/ic_media_previous"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Tháng trước"/>
+
+            <TextView
+                android:id="@+id/tvSelectedMonth"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:text="Tháng Năm 2023"/> <!-- Placeholder -->
+
+            <ImageButton
+                android:id="@+id/btnNextMonth"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@android:drawable/ic_media_next"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Tháng sau"/>
+        </LinearLayout>
+
+        <!-- Weekday Headers -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="7" >
+
+            <TextView style="@style/CalendarWeekdayHeader" android:text="T2" />
+            <TextView style="@style/CalendarWeekdayHeader" android:text="T3" />
+            <TextView style="@style/CalendarWeekdayHeader" android:text="T4" />
+            <TextView style="@style/CalendarWeekdayHeader" android:text="T5" />
+            <TextView style="@style/CalendarWeekdayHeader" android:text="T6" />
+            <TextView style="@style/CalendarWeekdayHeader" android:text="T7" />
+            <TextView style="@style/CalendarWeekdayHeader" android:text="CN" />
+        </LinearLayout>
+
+        <!-- Calendar Grid (using RecyclerView) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvCalendarGrid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/calendar_border"
+            android:padding="1dp"
+            app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+            app:spanCount="7" />
+
+        <!-- Monthly Summary -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="3" >
+
+            <!-- Total Income -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tổng thu tháng" style="@style/SummaryLabel"/>
+                <TextView
+                    android:id="@+id/tvMonthlyIncome"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 VNĐ" style="@style/SummaryValue.Income"/>
+            </LinearLayout>
+
+            <!-- Total Expense -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tổng chi tháng" style="@style/SummaryLabel"/>
+                <TextView
+                    android:id="@+id/tvMonthlyExpense"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 VNĐ" style="@style/SummaryValue.Expense"/>
+            </LinearLayout>
+
+            <!-- Total Balance -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tổng còn lại" style="@style/SummaryLabel"/>
+                <TextView
+                    android:id="@+id/tvMonthlyBalance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 VNĐ" style="@style/SummaryValue.Balance"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Container for Daily Transactions -->
+        <LinearLayout
+            android:id="@+id/dailyTransactionsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="16dp">
+            <!-- Daily transaction headers and items will be added here dynamically -->
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView> 
