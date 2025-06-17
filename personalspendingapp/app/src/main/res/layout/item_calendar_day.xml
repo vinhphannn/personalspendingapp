@@ -1,0 +1,48 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="0dp"
+    android:background="@drawable/calendar_day_border"
+    android:orientation="vertical"
+    android:padding="4dp">
+
+    <!-- Day Number -->
+    <TextView
+        android:id="@+id/tvDayNumber"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        tools:text="25"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <!-- Container for Income and Expense -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Total Income for the day -->
+        <TextView
+            android:id="@+id/tvDailyIncome"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            tools:text="+1.2M"
+            android:textColor="@android:color/holo_green_dark"
+            android:textSize="8sp" />
+
+        <!-- Total Expense for the day -->
+        <TextView
+            android:id="@+id/tvDailyExpense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            tools:text="-500k"
+            android:textColor="@android:color/holo_red_dark"
+            android:textSize="8sp" />
+
+    </LinearLayout>
+
+</LinearLayout> 

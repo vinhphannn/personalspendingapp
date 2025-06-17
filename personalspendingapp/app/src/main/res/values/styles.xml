@@ -1,0 +1,54 @@
+<resources>
+    <!-- Styles for Calendar Fragment -->
+
+    <!-- Weekday Header style -->
+    <style name="CalendarWeekdayHeader">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:padding">4dp</item>
+    </style>
+
+    <!-- Summary Label style -->
+    <style name="SummaryLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- Summary Value base style -->
+    <style name="SummaryValue">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:layout_marginTop">4dp</item>
+    </style>
+
+    <!-- Income Summary Value style (inherits from SummaryValue) -->
+    <style name="SummaryValue.Income" parent="SummaryValue">
+        <item name="android:textColor">@android:color/holo_green_dark</item>
+    </style>
+
+    <!-- Expense Summary Value style (inherits from SummaryValue) -->
+    <style name="SummaryValue.Expense" parent="SummaryValue">
+        <item name="android:textColor">@android:color/holo_red_dark</item>
+    </style>
+
+     <!-- Balance Summary Value style (inherits from SummaryValue) -->
+    <style name="SummaryValue.Balance" parent="SummaryValue">
+        <item name="android:textColor">@android:color/black</item>
+    </style>
+
+    <!-- Dialog Theme -->
+    <style name="DialogTheme" parent="Theme.MaterialComponents.Dialog">
+        <!-- Customize your dialog here if needed -->
+        <item name="android:windowBackground">@drawable/dialog_background</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+</resources> 
