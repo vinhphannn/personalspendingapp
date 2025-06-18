@@ -240,11 +240,14 @@ public class ReportFragment extends Fragment {
         double totalAmount = 0;
         for (com.example.personalspendingapp.models.Transaction transaction : filteredTransactions) {
             String categoryId = transaction.getCategoryId();
-            String categoryName = DataManager.getInstance().getCategoryById(categoryId, transaction.getType()).getName();
-            double currentTotal = amountByCategory.getOrDefault(categoryName, 0.0);
-            double newTotal = currentTotal + transaction.getAmount();
-            amountByCategory.put(categoryName, newTotal);
-            totalAmount += transaction.getAmount();
+            com.example.personalspendingapp.models.Category category = DataManager.getInstance().getCategoryById(categoryId, transaction.getType());
+            if (category != null) {
+                String categoryName = category.getName();
+                double currentTotal = amountByCategory.getOrDefault(categoryName, 0.0);
+                double newTotal = currentTotal + transaction.getAmount();
+                amountByCategory.put(categoryName, newTotal);
+                totalAmount += transaction.getAmount();
+            }
         }
 
         // Tạo PieEntries từ tổng theo danh mục
