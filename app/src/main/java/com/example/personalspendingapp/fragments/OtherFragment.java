@@ -15,6 +15,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -54,6 +55,7 @@ import com.google.firebase.auth.EmailAuthProvider;
 import com.example.personalspendingapp.utils.ReportExporter;
 import com.example.personalspendingapp.dialogs.PrivacyTermsDialog;
 import com.example.personalspendingapp.utils.PrivacyTermsContent;
+import com.example.personalspendingapp.fragments.TransactionSearchFragment;
 
 import java.io.File;
 import java.util.Date;
@@ -119,6 +121,18 @@ public class OtherFragment extends Fragment {
         btnChangePassword.setOnClickListener(v -> {
             showChangePasswordDialog();
         });
+
+        // Thêm click listener cho nút tìm kiếm giao dịch
+        View btnSearchTransaction = view.findViewById(R.id.TIMKIEMGIAODICH);
+        if (btnSearchTransaction != null) {
+            btnSearchTransaction.setOnClickListener(v -> {
+                requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, new TransactionSearchFragment())
+                    .addToBackStack(null)
+                    .commit();
+            });
+        }
 
         return view;
     }

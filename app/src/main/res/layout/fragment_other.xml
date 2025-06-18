@@ -124,11 +124,24 @@
         app:cardElevation="4dp"
         app:cardBackgroundColor="@android:color/white">
 
-    <LinearLayout
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="307dp"
+            android:layout_height="413dp"
             android:orientation="vertical"
             android:padding="16dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/TIMKIEMGIAODICH"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:paddingVertical="12dp"
+                android:text="TÌM KIẾM GIAO DỊCH"
+                android:textColor="@android:color/white"
+                app:backgroundTint="@color/purple_500"
+                app:icon="@android:drawable/ic_menu_search"
+                app:iconGravity="textStart"
+                app:iconTint="@android:color/white" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnExportReport"

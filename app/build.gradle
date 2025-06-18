@@ -26,6 +26,7 @@ android {
     }
     buildFeatures {
         dataBinding true
+        viewBinding true
     }
 }
 
@@ -64,4 +65,5 @@ dependencies {
 
     // iText
     implementation 'com.itextpdf:itextpdf:5.5.13.3'
+
 }
