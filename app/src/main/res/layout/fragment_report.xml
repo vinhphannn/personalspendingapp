@@ -107,21 +107,24 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:orientation="horizontal"
+                    android:orientation="vertical"
                     android:background="@drawable/summary_background_border"
                     android:padding="12dp"
                     android:layout_marginEnd="4dp">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Chi tiêu" style="@style/SummaryLabel"/>
+                        android:text="Chi tiêu" 
+                        style="@style/SummaryLabel"/>
                     <TextView
                         android:id="@+id/tvReportTotalExpense"
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
                         android:gravity="end"
-                        tools:text="-35.353đ" style="@style/SummaryValue.Expense"/>
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        tools:text="-35.353đ" 
+                        style="@style/SummaryValue.Expense"/>
                 </LinearLayout>
 
                 <!-- Total Income -->
@@ -129,21 +132,24 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:orientation="horizontal"
+                    android:orientation="vertical"
                     android:background="@drawable/summary_background_border"
                     android:padding="12dp"
                     android:layout_marginStart="4dp">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Thu nhập" style="@style/SummaryLabel"/>
+                        android:text="Thu nhập" 
+                        style="@style/SummaryLabel"/>
                     <TextView
                         android:id="@+id/tvReportTotalIncome"
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
                         android:gravity="end"
-                        tools:text="+305.292đ" style="@style/SummaryValue.Income"/>
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        tools:text="+305.292đ" 
+                        style="@style/SummaryValue.Income"/>
                 </LinearLayout>
             </LinearLayout>
 
@@ -151,20 +157,23 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:orientation="vertical"
                 android:background="@drawable/summary_background_border"
                 android:padding="12dp">
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Thu chi" style="@style/SummaryLabel"/>
+                    android:text="Thu chi" 
+                    style="@style/SummaryLabel"/>
                 <TextView
                     android:id="@+id/tvReportBalance"
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:gravity="end"
-                    tools:text="+269.939đ" style="@style/SummaryValue.Balance"/>
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="+269.939đ" 
+                    style="@style/SummaryValue.Balance"/>
             </LinearLayout>
         </LinearLayout>
 

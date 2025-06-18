@@ -2,6 +2,7 @@ package com.example.personalspendingapp.fragments;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -89,6 +90,9 @@ public class OtherFragment extends Fragment {
     private final String[] languages = {"Tiếng Việt", "English", "中文", "日本語", "한국어"};
 
     private NotificationHelper notificationHelper;
+
+    // Thêm hằng số cho request code
+    private static final int REQUEST_SAVE_FILE = 1;
 
     public OtherFragment() {
         // Required empty public constructor
@@ -225,15 +229,7 @@ public class OtherFragment extends Fragment {
         }
 
         btnExportReport.setOnClickListener(v -> {
-            // Kiểm tra quyền ghi file
-            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
-                return;
-            }
-
-            // Lưu báo cáo vào thiết bị
-            saveReportToDevice();
+            showExportReportDialog();
         });
     }
 
@@ -542,38 +538,93 @@ public class OtherFragment extends Fragment {
         dialog.show();
     }
 
+    private void showExportReportDialog() {
+        Dialog dialog = new Dialog(requireContext());
+        dialog.setContentView(R.layout.dialog_export_report);
+        dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+
+        // Xử lý nút Lưu vào thiết bị
+        dialog.findViewById(R.id.btnSave).setOnClickListener(v -> {
+            dialog.dismiss();
+            saveReportToDevice();
+        });
+
+        // Xử lý nút Chia sẻ qua ứng dụng khác
+        dialog.findViewById(R.id.btnShare).setOnClickListener(v -> {
+            dialog.dismiss();
+            shareReport();
+        });
+
+        // Xử lý nút Hủy
+        dialog.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
     private void saveReportToDevice() {
-        // Hiển thị dialog đang xử lý
+        // Kiểm tra quyền ghi file
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            // Nếu chưa có quyền, yêu cầu người dùng cấp quyền
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+            return;
+        }
+
         ProgressDialog progressDialog = new ProgressDialog(requireContext());
         progressDialog.setMessage("Đang tạo báo cáo...");
         progressDialog.setCancelable(false);
         progressDialog.show();
 
-        // Chạy trong thread riêng để không block UI
         new Thread(() -> {
             ReportExporter exporter = new ReportExporter(requireContext());
-            tempReportFile = exporter.exportFinancialReport(); // Lưu file tạm vào biến
+            tempReportFile = exporter.exportFinancialReport();
             requireActivity().runOnUiThread(() -> {
                 progressDialog.dismiss();
                 if (tempReportFile != null) {
-                    // Tạo intent để chọn thư mục lưu
                     Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                     intent.addCategory(Intent.CATEGORY_OPENABLE);
                     intent.setType("application/pdf");
-                    intent.putExtra(Intent.EXTRA_TITLE, "BaoCaoTaiChinh_" + 
-                        new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date()) + ".pdf");
-                    
+                    intent.putExtra(Intent.EXTRA_TITLE, tempReportFile.getName());
                     try {
-                        startActivityForResult(intent, 1);
-                    } catch (ActivityNotFoundException e) {
-                        Toast.makeText(requireContext(),
-                            "Không tìm thấy ứng dụng quản lý file",
-                            Toast.LENGTH_SHORT).show();
+                        startActivityForResult(intent, REQUEST_SAVE_FILE);
+                    } catch (Exception e) {
+                        Toast.makeText(requireContext(), "Không tìm thấy ứng dụng quản lý file", Toast.LENGTH_SHORT).show();
                     }
                 } else {
-                    Toast.makeText(requireContext(), 
-                        "Có lỗi xảy ra khi xuất báo cáo", 
-                        Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Có lỗi xảy ra khi xuất báo cáo", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }).start();
+    }
+
+    private void shareReport() {
+        ProgressDialog progressDialog = new ProgressDialog(requireContext());
+        progressDialog.setMessage("Đang tạo báo cáo...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        new Thread(() -> {
+            ReportExporter exporter = new ReportExporter(requireContext());
+            File reportFile = exporter.exportFinancialReport();
+            requireActivity().runOnUiThread(() -> {
+                progressDialog.dismiss();
+                if (reportFile != null) {
+                    Uri pdfUri = FileProvider.getUriForFile(requireContext(),
+                        requireContext().getPackageName() + ".provider",
+                        reportFile);
+
+                    Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                    shareIntent.setType("application/pdf");
+                    shareIntent.putExtra(Intent.EXTRA_STREAM, pdfUri);
+                    shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    
+                    try {
+                        startActivity(Intent.createChooser(shareIntent, "Chia sẻ báo cáo qua"));
+                    } catch (Exception e) {
+                        Toast.makeText(requireContext(), "Không tìm thấy ứng dụng để chia sẻ", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(requireContext(), "Có lỗi xảy ra khi xuất báo cáo", Toast.LENGTH_SHORT).show();
                 }
             });
         }).start();
@@ -582,140 +633,40 @@ public class OtherFragment extends Fragment {
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 1 && resultCode == Activity.RESULT_OK && data != null) {
-            try {
-                // Lấy URI của file đã chọn
-                Uri uri = data.getData();
-                if (uri != null && tempReportFile != null) { // Đảm bảo tempReportFile tồn tại
-                    // Hiển thị dialog đang xử lý
-                    ProgressDialog progressDialog = new ProgressDialog(requireContext());
-                    progressDialog.setMessage("Đang lưu báo cáo...");
-                    progressDialog.setCancelable(false);
-                    progressDialog.show();
-
-                    // Chạy trong thread riêng để không block UI
-                    new Thread(() -> {
-                        try {
-                            // Sao chép nội dung file đã tạo vào vị trí đã chọn
-                            try (InputStream in = new FileInputStream(tempReportFile);
-                                 OutputStream out = requireContext().getContentResolver().openOutputStream(uri)) {
-                                if (out != null) {
-                                    byte[] buffer = new byte[1024];
-                                    int read;
-                                    while ((read = in.read(buffer)) != -1) {
-                                        out.write(buffer, 0, read);
-                                    }
-                                    requireActivity().runOnUiThread(() -> {
-                                        progressDialog.dismiss();
-                                        Toast.makeText(requireContext(),
-                                            "Đã lưu báo cáo thành công",
-                                            Toast.LENGTH_SHORT).show();
-                                    });
-                                }
-                            } finally {
-                                // Xóa file tạm sau khi đã sao chép xong
-                                tempReportFile.delete();
-                                tempReportFile = null; // Đặt lại về null
-                            }
-                        } catch (Exception e) {
-                            requireActivity().runOnUiThread(() -> {
-                                progressDialog.dismiss();
-                                Toast.makeText(requireContext(),
-                                    "Có lỗi xảy ra khi lưu báo cáo: " + e.getMessage(),
-                                    Toast.LENGTH_SHORT).show();
-                            });
-                        }
-                    }).start();
+        if (requestCode == REQUEST_SAVE_FILE && resultCode == Activity.RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            if (uri != null && tempReportFile != null) {
+                try {
+                    InputStream in = new FileInputStream(tempReportFile);
+                    OutputStream out = requireContext().getContentResolver().openOutputStream(uri);
+                    byte[] buffer = new byte[1024];
+                    int len;
+                    while ((len = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, len);
+                    }
+                    in.close();
+                    out.close();
+                    Toast.makeText(requireContext(), "Đã lưu báo cáo thành công", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    Toast.makeText(requireContext(), "Có lỗi xảy ra khi lưu file", Toast.LENGTH_SHORT).show();
                 }
-            } catch (Exception e) {
-                Toast.makeText(requireContext(),
-                    "Có lỗi xảy ra: " + e.getMessage(),
-                    Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-    private void sendReportViaEmail() {
-        // Hiển thị dialog đang xử lý
-        ProgressDialog progressDialog = new ProgressDialog(requireContext());
-        progressDialog.setMessage("Đang tạo báo cáo...");
-        progressDialog.setCancelable(false);
-        progressDialog.show();
-
-        // Chạy trong thread riêng để không block UI
-        new Thread(() -> {
-            try {
-                ReportExporter exporter = new ReportExporter(requireContext());
-                File reportFile = exporter.exportFinancialReport();
-
-                if (reportFile != null) {
-                    // Lấy email người dùng hiện tại
-                    FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-                    if (currentUser != null && currentUser.getEmail() != null) {
-                        String userEmail = currentUser.getEmail();
-                        
-                        // Tạo nội dung email
-                        String emailSubject = "Báo cáo tài chính cá nhân - " + new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
-                        String emailBody = "Kính gửi " + currentUser.getDisplayName() + ",\n\n" +
-                            "Đính kèm là báo cáo tài chính cá nhân của bạn được tạo vào " + 
-                            new SimpleDateFormat("HH:mm:ss dd/MM/yyyy", Locale.getDefault()).format(new Date()) + ".\n\n" +
-                            "Báo cáo bao gồm:\n" +
-                            "- Tổng quan tài chính\n" +
-                            "- Biểu đồ phân bổ thu chi\n" +
-                            "- Chi tiết giao dịch theo tháng\n" +
-                            "- Thông tin ứng dụng\n\n" +
-                            "Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi qua email support@personalspendingapp.com\n\n" +
-                            "Trân trọng,\n" +
-                            "Đội ngũ Personal Spending App";
-
-                        // Tạo URI cho file PDF
-                        Uri pdfUri = FileProvider.getUriForFile(requireContext(),
-                            requireContext().getPackageName() + ".provider",
-                            reportFile);
-
-                        // Tạo intent để gửi email
-                        Intent intent = new Intent(Intent.ACTION_SEND);
-                        intent.setType("application/pdf");
-                        intent.putExtra(Intent.EXTRA_EMAIL, new String[]{userEmail});
-                        intent.putExtra(Intent.EXTRA_SUBJECT, emailSubject);
-                        intent.putExtra(Intent.EXTRA_TEXT, emailBody);
-                        intent.putExtra(Intent.EXTRA_STREAM, pdfUri);
-                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-                        requireActivity().runOnUiThread(() -> {
-                            progressDialog.dismiss();
-                            try {
-                                startActivity(Intent.createChooser(intent, "Gửi báo cáo qua email"));
-                            } catch (ActivityNotFoundException e) {
-                                Toast.makeText(requireContext(),
-                                    "Không tìm thấy ứng dụng email",
-                                    Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                    } else {
-                        requireActivity().runOnUiThread(() -> {
-                            progressDialog.dismiss();
-                            Toast.makeText(requireContext(),
-                                "Không tìm thấy email người dùng",
-                                Toast.LENGTH_SHORT).show();
-                        });
-                    }
-                } else {
-                    requireActivity().runOnUiThread(() -> {
-                        progressDialog.dismiss();
-                        Toast.makeText(requireContext(),
-                            "Có lỗi xảy ra khi tạo báo cáo",
-                            Toast.LENGTH_SHORT).show();
-                    });
-                }
-            } catch (Exception e) {
-                requireActivity().runOnUiThread(() -> {
-                    progressDialog.dismiss();
-                    Toast.makeText(requireContext(),
-                        "Có lỗi xảy ra: " + e.getMessage(),
-                        Toast.LENGTH_SHORT).show();
-                });
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Nếu được cấp quyền, tiếp tục lưu file
+                saveReportToDevice();
+            } else {
+                // Nếu không được cấp quyền, thông báo cho người dùng
+                Toast.makeText(requireContext(), 
+                    "Cần cấp quyền để lưu báo cáo vào thiết bị", 
+                    Toast.LENGTH_SHORT).show();
             }
-        }).start();
+        }
     }
 } 
