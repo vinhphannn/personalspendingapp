@@ -51,6 +51,8 @@ import com.example.personalspendingapp.models.Category;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.EmailAuthProvider;
 import com.example.personalspendingapp.utils.ReportExporter;
+import com.example.personalspendingapp.dialogs.PrivacyTermsDialog;
+import com.example.personalspendingapp.utils.PrivacyTermsContent;
 
 import java.io.File;
 import java.util.Date;
@@ -150,6 +152,33 @@ public class OtherFragment extends Fragment {
                 showEditProfileDialog();
             });
         }
+
+        // Thêm click listener cho chính sách bảo mật
+        View privacyPolicyLayout = view.findViewById(R.id.privacyPolicyLayout);
+        if (privacyPolicyLayout != null) {
+            privacyPolicyLayout.setOnClickListener(v -> {
+                PrivacyTermsDialog dialog = new PrivacyTermsDialog(
+                    requireContext(),
+                    PrivacyTermsContent.PRIVACY_POLICY_TITLE,
+                    PrivacyTermsContent.PRIVACY_POLICY_CONTENT
+                );
+                dialog.show();
+            });
+        }
+
+        // Thêm click listener cho điều khoản dịch vụ
+        View termsOfServiceLayout = view.findViewById(R.id.termsOfServiceLayout);
+        if (termsOfServiceLayout != null) {
+            termsOfServiceLayout.setOnClickListener(v -> {
+                PrivacyTermsDialog dialog = new PrivacyTermsDialog(
+                    requireContext(),
+                    PrivacyTermsContent.TERMS_OF_SERVICE_TITLE,
+                    PrivacyTermsContent.TERMS_OF_SERVICE_CONTENT
+                );
+                dialog.show();
+            });
+        }
+
         Log.d(TAG, "initViews: end");
     }
 
