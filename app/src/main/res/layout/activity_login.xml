@@ -2,10 +2,28 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="16dp"
     android:gravity="center">
-
+    <ImageView
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:src="@drawable/personal_spending_app_logo_512x512"
+        android:layout_marginBottom="24dp"
+        android:layout_gravity="center"
+        ></ImageView>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Đăng nhập"
+        android:textSize="24dp"
+        android:textColor="@color/colorPrimary"
+        android:gravity="center"
+        android:padding="8dp"
+        android:layout_marginBottom="32dp"
+        android:textStyle="bold"
+        ></TextView>
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -21,7 +39,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:hint="Password">
+        android:hint="Password"
+        app:passwordToggleEnabled="true">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/passwordEditText"
             android:layout_width="match_parent"
@@ -40,17 +59,34 @@
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackground"/>
-
     <Button
         android:id="@+id/loginButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="Login" />
-    <Button
-        android:id="@+id/signUpButton"
-        android:layout_width="match_parent"
+
+
+    <LinearLayout
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Sign Up" />
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Chưa có tài khoản? "/>
+
+        <TextView
+            android:id="@+id/signUpButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Đăng ký"
+            android:textColor="@color/purple_500"
+            android:clickable="true"
+            android:focusable="true"/>
+
+    </LinearLayout>
+
 </LinearLayout>

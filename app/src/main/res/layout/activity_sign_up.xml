@@ -6,14 +6,25 @@
     android:orientation="vertical"
     android:padding="16dp"
     android:gravity="center">
-
+    <ImageView
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:src="@drawable/personal_spending_app_logo_512x512"
+        android:layout_marginBottom="24dp"
+        android:layout_gravity="center"
+        ></ImageView>
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Đăng Ký"
-        android:textSize="24sp"
+        android:text="Đăng ký"
+        android:textSize="24dp"
+        android:textColor="@color/colorPrimary"
+        android:gravity="center"
+        android:padding="8dp"
+        android:layout_marginBottom="32dp"
         android:textStyle="bold"
-        android:layout_marginBottom="32dp"/>
+        ></TextView>
+
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"

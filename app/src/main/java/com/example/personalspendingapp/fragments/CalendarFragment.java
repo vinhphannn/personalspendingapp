@@ -324,26 +324,26 @@ public class CalendarFragment extends Fragment implements CalendarDayAdapter.OnD
                     tvNote.setVisibility(View.VISIBLE);
                 }
 
-                // Thêm swipe-to-delete
-                View deleteBackground = getLayoutInflater().inflate(R.layout.item_transaction_delete_background, null);
-                ViewGroup parent = (ViewGroup) transactionView.getParent();
-                if (parent != null) {
-                    parent.removeView(transactionView);
-                }
-                
-                SwipeLayout swipeLayout = new SwipeLayout(getContext());
-                swipeLayout.addView(transactionView);
-                swipeLayout.addView(deleteBackground);
+                    // Thêm swipe-to-delete
+                    View deleteBackground = getLayoutInflater().inflate(R.layout.item_transaction_delete_background, null);
+                    ViewGroup parent = (ViewGroup) transactionView.getParent();
+                    if (parent != null) {
+                        parent.removeView(transactionView);
+                    }
 
-                // Thêm margin cho item
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                );
-                params.setMargins(0, 0, 0, 16); // Thêm margin bottom 16dp
-                swipeLayout.setLayoutParams(params);
-                
-                swipeLayout.setOnSwipeListener(new SwipeLayout.OnSwipeListener() {
+                    SwipeLayout swipeLayout = new SwipeLayout(getContext());
+                    swipeLayout.addView(transactionView);
+                    swipeLayout.addView(deleteBackground);
+
+                    // Thêm margin cho item
+                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    );
+                    params.setMargins(0, 0, 0, 16); // Thêm margin bottom 16dp
+                    swipeLayout.setLayoutParams(params);
+
+                    swipeLayout.setOnSwipeListener(new SwipeLayout.OnSwipeListener() {
                     @Override
                     public void onSwipe(float progress) {
                         deleteBackground.setAlpha(progress);
@@ -601,7 +601,9 @@ public class CalendarFragment extends Fragment implements CalendarDayAdapter.OnD
     }
 
     // Thêm class SwipeLayout
-    private static class SwipeLayout extends ViewGroup {
+    private static class
+
+    SwipeLayout extends ViewGroup {
         private static final float SWIPE_THRESHOLD = 0.5f;
         private float startX;
         private float startY;

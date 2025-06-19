@@ -18,11 +18,13 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.personalspendingapp.MainActivity;
 import com.example.personalspendingapp.R;
 import com.example.personalspendingapp.adapters.CategoryAdapter;
 import com.example.personalspendingapp.data.DataManager;
 import com.example.personalspendingapp.models.Category;
 import com.example.personalspendingapp.models.Transaction;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
@@ -148,6 +150,16 @@ public class ExpenseFragment extends Fragment {
             selectedDate.add(Calendar.DAY_OF_MONTH, 1);
             updateDateDisplay();
         });
+//        tvSelectedDate.setOnClickListener(v -> {
+//            if (getActivity() instanceof MainActivity){
+//                ((MainActivity) getActivity()).navigateToCalendarWithDate(selectedDate.getTime());
+//            }else {
+//                BottomNavigationView bottomNavigationView = getActivity().findViewById(R.id.bottomNavigationView);
+//                if (bottomNavigationView != null){
+//                    bottomNavigationView.setSelectedItemId(R.id.navigation_calendar);
+//                }
+//            }
+//        });
     }
 
     private void updateDateDisplay() {

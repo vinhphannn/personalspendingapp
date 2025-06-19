@@ -22,7 +22,7 @@ public class LoginActivity extends AppCompatActivity {
     private TextInputEditText emailEditText;
     private TextInputEditText passwordEditText;
     private Button loginButton;
-    private Button signUpButton;
+    private TextView signUpButton;
     private TextView forgotPasswordText;
 
     @Override
