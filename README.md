@@ -2,29 +2,29 @@
 
 ![Logo](app/src/main/res/drawable/personal_spending_app_logo_512x512.png)
 
-## 📝 Giới thiệu
+## Giới thiệu
 
 **Personal Spending App** là một ứng dụng Android được xây dựng bằng Java, giúp người dùng theo dõi và quản lý các khoản thu nhập và chi tiêu hàng ngày một cách hiệu quả. Ứng dụng sử dụng Firebase làm backend để lưu trữ và đồng bộ hóa dữ liệu real-time, đảm bảo người dùng có thể truy cập dữ liệu của mình từ bất kỳ thiết bị Android nào.
 
 ---
 
-## ✨ Tính năng nổi bật
+## Tính năng nổi bật
 
-- **✅ Quản lý Giao dịch:** Dễ dàng thêm, sửa, xóa các giao dịch thu nhập và chi tiêu.
-- **📊 Phân loại thông minh:** Gán giao dịch vào các danh mục (Ăn uống, Di chuyển, Lương,...) để tiện theo dõi.
-- **📅 Lịch sử G[object Object] Báo cáo & Thống kê:** Biểu đồ tròn và biểu đồ cột giúp hình dung rõ ràng về tình hình tài chính.
-- **📄 Xuất báo cáo PDF:** Xuất báo cáo chi tiêu ra file PDF để lưu trữ hoặc chia sẻ.
-- **🔔 Thông báo thông minh:**
+- **Quản lý Giao dịch:** Dễ dàng thêm, sửa, xóa các giao dịch thu nhập và chi tiêu.
+- **Phân loại thông minh:** Gán giao dịch vào các danh mục (Ăn uống, Di chuyển, Lương,...) để tiện theo dõi.
+- **Lịch sử G[object Object] Báo cáo & Thống kê:** Biểu đồ tròn và biểu đồ cột giúp hình dung rõ ràng về tình hình tài chính.
+- **Xuất báo cáo PDF:** Xuất báo cáo chi tiêu ra file PDF để lưu trữ hoặc chia sẻ.
+- **Thông báo thông minh:**
   - Nhắc nhở nhập liệu hàng ngày.
   - Gửi tổng kết chi tiêu hàng tuần.
   - Cảnh báo khi có chi tiêu lớn bất thường.
-- **☁️ Đồng bộ hóa Real-time:** Dữ liệu được lưu trữ an toàn trên Firebase và đồng bộ hóa ngay lập tức.
-- **⚙️ Tùy chỉnh:** Người dùng có thể tự tạo và quản lý các danh mục chi tiêu/thu nhập của riêng mình.
-- **🔐 Xác thực người dùng:** Đăng nhập và đăng ký an toàn bằng Firebase Authentication.
+- **Đồng bộ hóa Real-time:** Dữ liệu được lưu trữ an toàn trên Firebase và đồng bộ hóa ngay lập tức.
+- **Tùy chỉnh:** Người dùng có thể tự tạo và quản lý các danh mục chi tiêu/thu nhập của riêng mình.
+- **Xác thực người dùng:** Đăng nhập và đăng ký an toàn bằng Firebase Authentication.
 
 ---
 
-## 🚀 Công nghệ sử dụng
+## Công nghệ sử dụng
 
 - **Ngôn ngữ:** Java
 - **Nền tảng:** Android (Min SDK 24)
@@ -41,7 +41,7 @@
 
 ---
 
-## 🔥 Cấu trúc Firebase
+## Cấu trúc Firebase
 
 Dữ liệu người dùng được tổ chức trong Firestore theo cấu trúc sau:
 
@@ -76,7 +76,7 @@ Dữ liệu người dùng được tổ chức trong Firestore theo cấu trúc
 
 ---
 
-## 🛠️ Hướng dẫn cài đặt
+## Hướng dẫn cài đặt
 
 1. **Clone a repository:**
 
@@ -91,7 +91,7 @@ Dữ liệu người dùng được tổ chức trong Firestore theo cấu trúc
 
 ---
 
-## 🔮 Hướng phát triển trong tương lai
+## Hướng phát triển trong tương lai
 
 - [ ] **Hỗ trợ Offline:** Cho phép người dùng xem và thêm giao dịch khi không có mạng.
 - [ ] **Thêm Unit Tests:** Đảm bảo sự ổn định của ứng dụng.
